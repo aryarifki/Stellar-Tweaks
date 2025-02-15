@@ -1,12 +1,16 @@
+# What is Hiyorix Tweaks?
 
-# What is Hiyorix Tweaks ?
+**Hiyorix Tweaks** is a Magisk module designed to edit Android kernel parameters with multiple profiles for Snapdragon, Mediatek, Exynos, Unisoc, and Tensor processors. It also includes tweaks for all devices. The module features a minimalist and cute design 🥰 (Yet another performance module).
 
-**Hiyorix Tweaks** is a magisk module designed to edit android kernel parameters with multiple profiles for snapdragon mediatek exynos unisoc tensor. and tweaks for all devices. minimalist design cute 🥰 (Yet another performance module)  
- <img align="left" width="100" src="https://github.com/user-attachments/assets/7b903660-2e5c-42e7-b3f5-5f98faaca650">
- 
-> Channel Post : https://t.me/hosshi_prjkt <
-> Discussion : https://t.me/hosshi_chat <
+<div align="center">
+  <img width="200" src="https://github.com/kanaodnd/kanaokturu/blob/main/pinterestdownloader.com-1739649484.808935.gif">
+</div>
+
+**Links:**
+- **Channel Post:** [https://t.me/hosshi_prjkt](https://t.me/hosshi_prjkt)
+- **Discussion:** [https://t.me/hosshi_chat](https://t.me/hosshi_chat)
+
  
        
-# the hobby won't gone till u done
+the hobby won't gone till u done
 
