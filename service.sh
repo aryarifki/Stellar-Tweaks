@@ -26,6 +26,7 @@ sh /data/adb/modules/hiyorix/post-fs-data.sh
 sleep 2
 sh /data/adb/modules/hiyorix/service/hiyorix-zenith
 sleep 2
+/data/adb/modules/hiyorix/lib/lib64
 
 
 # List of applications to be monitored

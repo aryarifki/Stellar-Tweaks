@@ -38,15 +38,6 @@ sed -i "s/^name=.*/name=$module/" $MODPATH/module.prop
 sed -i "s/^author=.*/author=$author/" $MODPATH/module.prop
 sed -i "s/^description=.*/description=$description/" $MODPATH/module.prop
 sed -i "s/^version=.*/version=$version/" $MODPATH/module.prop
-  
-  ui_print "- Extracting webroot"
-  unzip -o "$ZIPFILE" "webroot/*" -d "$MODPATH" >&2
-
-if [ "$KSU" = "true" ] || [ "$APATCH" = "true" ]; then
-  rm "$MODPATH/action.sh"
-  touch "$MODPATH/skip_mount"
-  ui_print "- Ksu/Ap detected, skip mount"
-fi
 
   ui_print "- Extracting Hiyorix Logo "
   unzip -qo "$ZIPFILE" 'shirakami_fubuki.png' -d "/data/local/tmp"
@@ -62,9 +53,6 @@ fi
   unzip -o "$ZIPFILE" 'service/*' -d $MODPATH >&2
   unzip -o "$ZIPFILE" 'common/*' -d $MODPATH >&2
   
-  ui_print "- Extract Toast "
-  unzip -o "$ZIPFILE" toast.apk -d "$MODPATH" >&2
-  
 if ! pm list packages | grep -q bellavita.toast; then
 	ui_print "- Installing Bellavita Toast"
 	extract "$ZIPFILE" 'toast.apk' $TMPDIR
@@ -76,9 +64,6 @@ else
 	pm install -r $MODPATH/toast.apk > /dev/null
 	rm -f $TMPDIR/toast.apk
 fi
-
-  ui_print "- Setting Toast Permission"
-  set_perm_recursive "${MODPATH}/toast.apk" 0 0 0755 0700
   
   ui_print "- Extracting Additional Files "
   unzip -o "$ZIPFILE" service.sh -d "$MODPATH" >&2

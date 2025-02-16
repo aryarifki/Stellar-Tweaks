@@ -80,9 +80,9 @@ done
 ## Enabling fast charging mode
 echo "1" > /sys/kernel/fast_charge/force_fast_charge
 
-# Unity Fix (thx to hyonies)
+# Unity Fix 
 ## Setting up Unity parameters
-echo "UnityMain, libunity.so" > /proc/sys/kernel/sched_lib_name
+echo "com.miHoYo., com.activision., UnityMain, libunity.so, libil2cpp.so, libfb.so" > /proc/sys/kernel/sched_lib_name
 echo 255 > /proc/sys/kernel/sched_lib_mask_force
 ####################################################
 
