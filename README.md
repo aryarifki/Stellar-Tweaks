@@ -18,7 +18,7 @@ Yay! another kernel tweaks
 
 ## Getting Bugs?
 
-If you encounter any bugs, feel free to tag me in the group discussion or PM me directly. Please avoid asking unnecessary questions or things that are already clear. Let’s keep the discussion clean and productive. Gathering PMs 🥰.
+If you encounter any bugs, feel free to tag me in the group discussion or [PM me directly.](https://t.me/kanaochar).Please avoid asking unnecessary questions or things that are already clear. Gathering PMs 🥰.
 
 <div align="center">
   <img width="200" src="https://github.com/kanaodnd/kanaokturu/blob/main/pinterestdownloader.com-1739649484.808935.gif">
@@ -33,9 +33,9 @@ If you encounter any bugs, feel free to tag me in the group discussion or PM me 
 
 ## Contribution
 
-If you'd like to contribute or provide suggestions, please open a **Pull Request** or contact me via [telegram](t.me/kanaochar).
+If you'd like to contribute or provide suggestions, please open a **Pull Request** or contact me via [telegram](https://t.me/kanaochar).
 
 
- just see       
+> just see       
 > the hobby won't gone till u done
 
