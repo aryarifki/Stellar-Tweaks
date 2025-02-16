@@ -1,0 +1,808 @@
+
+#!/bin/bash
+
+show_notification() {
+    local message="$1"
+    local result
+
+    result=$(su -lp 2000 -c "cmd notification post \
+        -i 'file:///data/local/tmp/shirakami_fubuki.png' \
+        -t 'Hiyorix Tweaks' \
+        -I 'file:///data/local/tmp/shirakami_fubuki.png' \
+        'default' '$message'" > /dev/null 2>&1)
+
+    if [ $? -ne 0 ]; then
+        echo "Notification failed to send, trying another method..."
+        alternative_notification "$message"
+    fi
+}
+
+alternative_notification() {
+    local fallback_message="$1"
+}
+
+apply_tweak() {
+    local soc_name="$1"
+    TWEAK_MESSAGE="Successfully Applied for $soc_name"
+    echo "$TWEAK_MESSAGE"
+    show_notification "$TWEAK_MESSAGE"
+}
+
+write() {
+    local file="$1"
+    local value="$2"
+    
+    if [ -f "$file" ]; then
+        echo "$value" > "$file"
+    else
+        echo "File $file does not exist."
+    fi
+}
+
+apply() {
+    local value="$1"
+    local file="$2"
+    
+    if [ -f "$file" ]; then
+        echo "$value" > "$file"
+    else
+        echo "File $file does not exist."
+    fi
+}
+
+##########################################
+
+# SoC
+if grep -qi 'exynos' /sys/firmware/devicetree/base/model; then
+    echo "Tweaks for Exynos will be implemented..."
+    apply_tweak "Exynos"
+
+	for mali in /sys/devices/platform/*.mali; do
+	apply 0 $mali/tmu
+	apply 80 $mali/hispeed_load
+	apply 1 $mali/perf
+    done
+    
+settings put global ble_scan_always_enabled 0
+settings put global wifi_scan_always_enabled 0
+settings put global hotword_detection_enabled 0
+settings put global activity_starts_logging_enabled 0
+settings put global network_recommendations_enabled 0
+settings put secure adaptive_sleep 0
+settings put secure screensaver_enabled 0
+settings put secure send_action_app_error 0
+settings put secure screensaver_activate_on_dock 0
+settings put secure screensaver_activate_on_sleep 0
+settings put system motion_engine 0
+settings put system master_motion 0
+settings put system rakuten_denwa 0
+settings put system air_motion_engine 0
+settings put system air_motion_wake_up 0
+settings put system send_security_reports 0
+settings put system intelligent_sleep_mode 0
+settings put system nearby_scanning_enabled 0
+settings put system nearby_scanning_permission_allowed 0
+     
+elif grep -qi 'qualcomm' /sys/firmware/devicetree/base/model; then
+    echo "Tweaks for Snapdragon will be applied..."
+    apply_tweak "Snapdragon"
+   # Qualcomm CPU Bus and DRAM frequencies
+	for path in /sys/class/devfreq/*cpu-ddr-latfloor* \
+            /sys/class/devfreq/*cpu*-lat \
+            /sys/class/devfreq/*cpu-cpu-ddr-bw \
+            /sys/class/devfreq/*cpu-cpu-llcc-bw; do
+    apply "ondemand" $path/governor &
+done
+
+	if [ -d /sys/devices/system/cpu/bus_dcvs/LLCC ]; then
+		freq=$(cat /sys/devices/system/cpu/bus_dcvs/LLCC/available_frequencies | tr ' ' '\n' | sort -nr | head -n 1)
+		for path in /sys/devices/system/cpu/bus_dcvs/LLCC/*/max_freq; do
+			apply $freq $path
+		done &
+		for path in /sys/devices/system/cpu/bus_dcvs/LLCC/*/min_freq; do
+			apply $freq $path
+		done &
+	fi
+
+	if [ -d /sys/devices/system/cpu/bus_dcvs/LLCC ]; then
+    for path in /sys/devices/system/cpu/bus_dcvs/LLCC/*/max_freq \
+                /sys/devices/system/cpu/bus_dcvs/LLCC/*/min_freq; do
+        apply "0" $path &
+    done
+fi
+
+	if [ -d /sys/devices/system/cpu/bus_dcvs/DDR ]; then
+		freq=$(cat /sys/devices/system/cpu/bus_dcvs/DDR/available_frequencies | tr ' ' '\n' | sort -nr | head -n 1)
+		for path in /sys/devices/system/cpu/bus_dcvs/DDR/*/max_freq; do
+			apply $freq $path
+		done &
+		for path in /sys/devices/system/cpu/bus_dcvs/DDR/*/min_freq; do
+			apply $freq $path
+		done &
+	fi
+
+	if [ -d /sys/devices/system/cpu/bus_dcvs/DDRQOS ]; then
+		freq=$(cat /sys/devices/system/cpu/bus_dcvs/DDRQOS/available_frequencies | tr ' ' '\n' | sort -nr | head -n 1)
+		for path in /sys/devices/system/cpu/bus_dcvs/DDRQOS/*/max_freq; do
+			apply $freq $path
+		done &
+		for path in /sys/devices/system/cpu/bus_dcvs/DDRQOS/*/min_freq; do
+			apply $freq $path
+		done &
+	fi
+
+	# GPU Frequency
+	gpu_path="/sys/class/kgsl/kgsl-3d0/devfreq"
+
+	if [ -d $gpu_path ]; then
+		freq=$(cat $gpu_path/available_frequencies | tr ' ' '\n' | sort -nr | head -n 1)
+		apply $freq $gpu_path/min_freq
+		apply $freq $gpu_path/max_freq
+	fi
+
+	# GPU Bus
+	for path in /sys/class/devfreq/*gpubw*; do
+	if [ -e "$path/governor" ]; then
+		apply "ondemand" $path/governor
+
+		else
+		 apply "interactive" $path/governor
+	fi	 
+done 
+#Ufs tweaks
+	for path in /sys/class/devfreq/*.ufshc; do
+    if [ -e "$path/governor" ]; then
+        apply "ondemand" "$path/governor"
+        
+      else
+        apply "interactive" "$path/governor"
+    fi
+done
+
+# MMC Tweaks
+for path in /sys/class/devfreq/mmc*; do
+    if [ -e "$path/governor" ]; then
+        apply "ondemand" "$path/governor"
+        
+      else
+       apply "interactive" "$path/governor"
+    fi
+done
+
+# CPU Tweaks
+for path in /sys/devices/system/cpu/cpufreq/policy*; do
+    if [ -e "$path/scaling_governor" ]; then
+        apply "ondemand" "$path/scaling_governor"
+      
+       else
+       apply "interactive" "$path/scaling_governor"
+    fi
+done
+
+
+	# Adreno Boost
+	apply 3 /sys/class/kgsl/kgsl-3d0/devfreq/adrenoboost    
+	
+setprop debug.egl.hw 1
+setprop debug.hwui.level 2
+setprop debug.mdpcomp.logs 0
+setprop debug.qc.hardware true
+setprop debug.hwui.fps_divisor 1
+setprop debug.qctwa.statusbar 1
+setprop debug.egl.disable_msaa 1
+setprop debug.hwui.renderer skiagl
+setprop debug.cpurend.vsync false
+setprop debug.hwui.overdraw false
+setprop debug.qctwa.preservebuf 1
+setprop debug.performance.tuning 1
+setprop debug.composition.type gpu
+setprop debug.egl.disable_msaa true
+setprop debug.hwui.nv_profiling false
+setprop debug.hwui.skp_filename false
+setprop debug.hwui.disable_vsync true
+setprop debug.hwui.render_thread true
+setprop debug.skia.threaded_mode true
+setprop debug.hwui.use_buffer_age false
+setprop debug.gralloc.gfx_ubwc_disable 1
+setprop debug.skia.num_render_threads 1
+setprop debug.hwui.render_thread_count 1
+setprop debug.sf.enable_gl_backpressure 1
+setprop debug.hwui.clip_surfaceviews false
+setprop debug.hwui.use_hint_manager false
+setprop debug.hwui.disable_draw_defer true
+setprop debug.hwui.show_dirty_regions false
+setprop debug.hwui.8bit_hdr_headroom false
+setprop debug.hwui.skip_empty_damage true
+setprop debug.hwui.app_memory_policy false
+setprop debug.hwui.filter_test_overhead false
+setprop debug.hwui.use_partial_updates false
+setprop debug.hwui.skia_atrace_enabled false
+setprop debug.hwui.render_dirty_regions false
+setprop debug.hwui.skia_tracing_enabled false
+setprop debug.hwui.disable_draw_reorder true
+setprop debug.skia.render_thread_priority true
+setprop debug.hwui.trace_gpu_resources false
+setprop debug.hwui.target_cpu_time_percent 1
+setprop debug.hwui.capture_skp_enabled false
+setprop debug.hwui.show_layers_updates false
+setprop debug.hwui.use_gpu_pixel_buffers true
+setprop debug.sf.enable_transaction_tracing false
+setprop debug.hwui.webview_overlays_enabled true
+setprop debug.renderengine.backend skiaglthreaded
+setprop debug.sf.disable_client_composition_cache 0
+setprop debug.hwui.skia_use_perfetto_track_events false
+setprop debug.renderthread.skia.reduceopstasksplitting true
+
+settings put global ble_scan_always_enabled 0
+settings put global wifi_scan_always_enabled 0
+settings put global hotword_detection_enabled 0
+settings put global activity_starts_logging_enabled 0
+settings put global network_recommendations_enabled 0
+settings put secure adaptive_sleep 0
+settings put secure screensaver_enabled 0
+settings put secure send_action_app_error 0
+settings put secure screensaver_activate_on_dock 0
+settings put secure screensaver_activate_on_sleep 0
+settings put system motion_engine 0
+settings put system master_motion 0
+settings put system rakuten_denwa 0
+settings put system air_motion_engine 0
+settings put system air_motion_wake_up 0
+settings put system send_security_reports 0
+settings put system intelligent_sleep_mode 0
+settings put system nearby_scanning_enabled 0
+settings put system nearby_scanning_permission_allowed 0
+	
+pm disable com.qualcomm.qti.cne
+pm disable com.qualcomm.location.XT	
+	
+	
+elif grep -qi 'mediatek' /sys/firmware/devicetree/base/model; then
+    echo "Tweaks for MediaTek will be applied..."
+    apply_tweak "MediaTek"
+chmod 444 /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+default_gov="$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor)"
+
+# Enable SWPM
+echo 65535 1 > /proc/swpm/enable
+echo 0 > /proc/swpm/pmu_ms_mode
+echo 0 > /proc/swpm/swpm_pmsr_trigger
+
+# PPM Settings
+echo "1" > /proc/ppm/enabled
+for i in {0..9}; do
+    echo "1" > /proc/ppm/policy_status
+done
+
+# Power level settings
+for pl in /sys/devices/system/cpu/perf; do
+    echo 1 > "$pl/gpu_pmu_enable"
+    echo 1 > "$pl/fuel_gauge_enable"
+    echo 1 > "$pl/enable"
+    echo 1 > "$pl/charger_enable"
+done
+
+# FPSGO settings
+echo "1" > /sys/kernel/fpsgo/fbt/boost_ta
+echo "0" > /sys/kernel/fpsgo/fbt/enable_switch_down_throttle
+echo "1" > /sys/kernel/fpsgo/fbt/boost_VIP
+
+# MTK FPSGo advanced parameters
+for param in boost_affinity boost_LR xgf_uboost xgf_extra_sub gcc_enable gcc_hwui_hint; do
+    echo "1" > "/sys/module/mtk_fpsgo/parameters/$param"
+done
+
+# Disable battery current limiter
+apply "stop 1" /proc/mtk_batoc_throttling/battery_oc_protect_stop
+
+# Performance Manager
+echo "1" > /proc/perfmgr/syslimiter/syslimiter_force_disable
+
+# DRAM Frequency settings
+apply "0" /sys/devices/platform/10012000.dvfsrc/helio-dvfsrc/dvfsrc_req_ddr_opp
+apply "performance" /sys/class/devfreq/mtk-dvfsrc-devfreq/governor
+
+# Eara Thermal
+apply "0" /sys/kernel/eara_thermal/enable
+
+# Disable GPU Power limiter
+if [ -f "/proc/gpufreq/gpufreq_power_limited" ]; then
+    apply "ignore_batt_oc 1" /proc/gpufreq/gpufreq_power_limited
+    apply "ignore_batt_percent 1" /proc/gpufreq/gpufreq_power_limited
+    apply "ignore_low_batt 1" /proc/gpufreq/gpufreq_power_limited
+    apply "ignore_thermal_protect 1" /proc/gpufreq/gpufreq_power_limited
+    apply "ignore_pbm_limited 1" /proc/gpufreq/gpufreq_power_limited
+fi
+
+# GED parameters
+ged_params="ged_smart_boost 1
+boost_upper_bound 100
+enable_gpu_boost 1
+enable_cpu_boost 1
+ged_boost_enable 1
+boost_gpu_enable 1
+gpu_dvfs_enable 1
+gx_game_mode 1"
+
+echo "$ged_params" | while read -r param value; do
+    apply_setting "/sys/module/ged/parameters/$param" "$value"
+done
+
+# Mali Directory Configuration
+if [ -n "$mali_dir" ]; then
+    echo "Mali directory found at: $mali_dir"
+    [ -f "$mali_dir/serialize_jobs" ] && apply_setting "$mali_dir/serialize_jobs" "full"
+fi
+
+# GPU Frequency Settings
+if [ -d /proc/gpufreq ]; then
+    gpu_freq="$(cat /proc/gpufreq/gpufreq_opp_dump | grep -o 'freq = [0-9]*' | sed 's/freq = //' | sort -nr | head -n 1)"
+    apply "$gpu_freq" /proc/gpufreq/gpufreq_opp_freq
+elif [ -d /proc/gpufreqv2 ]; then
+    apply 0 /proc/gpufreqv2/fix_target_opp_index
+fi
+
+# MTK Power and CCI Mode Settings
+apply "1" /proc/cpufreq/cpufreq_cci_mode
+apply "3" /proc/cpufreq/cpufreq_power_mode
+
+# EAS/HMP Switch
+apply "0" /sys/devices/system/cpu/eas/enable
+
+# GPU Frequency Custom Settings
+apply "0" /sys/kernel/ged/hal/custom_upbound_gpu_freq
+apply "0" /sys/kernel/ged/hal/custom_boost_gpu_freq
+
+# Change permission for CPU limits
+change_permission 644 /sys/devices/virtual/thermal/thermal_message/cpu_limits
+for path in /sys/devices/system/cpu/*/cpufreq; do
+    cpu_maxfreq=$(cat $path/cpuinfo_max_freq)
+    apply "$cpu_maxfreq" $path/scaling_max_freq
+    apply "$cpu_maxfreq" $path/scaling_min_freq
+    apply "cpu$(awk '{print $1}' $path/affected_cpus) $cpu_maxfreq" /sys/devices/virtual/thermal/thermal_message/cpu_limits
+done
+change_permission 000 /sys/devices/virtual/thermal/thermal_message/cpu_limits
+
+# Check and modify PPM Policy Status
+if [ -f /proc/ppm/policy_status ]; then
+    policy_file="/proc/ppm/policy_status"
+    pwr_thro_idx=$(grep 'PPM_POLICY_PWR_THRO' $policy_file | sed 's/.*```\(.*\)```.*/\1/')
+    thermal_idx=$(grep 'PPM_POLICY_THERMAL' $policy_file | sed 's/.*```\(.*\)```.*/\1/')
+
+    echo "$pwr_thro_idx 0" >$policy_file
+    echo "$thermal_idx 0" >$policy_file
+fi
+
+# Disable Hotplugging for specific cores
+for corecpu in /sys/devices/system/cpu/cpu[1-7] /sys/devices/system/cpu/cpu1[0-7]; do
+    echo "1" > "$corecpu/core_ctl/enable"
+    echo "1" > "$corecpu/core_ctl/core_ctl_boost"
+done
+
+# MediaTek Specific Tweaks
+if [ "$soc" -eq 1 ]; then
+    # Force CPU to highest possible OPP
+    cluster=0
+    for path in /sys/devices/system/cpu/cpufreq/policy*; do
+        max_freq=$(awk '{print $NF}' "$path/scaling_available_frequencies")
+        
+        if [ -n "$max_freq" ]; then
+            echo "$cluster $max_freq" > /proc/ppm/policy/hard_userlimit_min_cpu_freq
+            echo "[+] Cluster $cluster set to max: $max_freq"
+        else
+            echo "[-] failed to take cluster $cluster"
+        fi
+        
+        # Increment cluster
+        ((cluster++))
+    done
+fi
+
+for path in /sys/class/devfreq/*.ufshc; do
+    if [ -e "$path/governor" ]; then
+        apply "ondemand" "$path/governor"
+        
+      else
+        apply "interactive" "$path/governor"
+    fi
+done
+
+# MMC Tweaks
+for path in /sys/class/devfreq/mmc*; do
+    if [ -e "$path/governor" ]; then
+        apply "ondemand" "$path/governor"
+        
+      else
+       apply "interactive" "$path/governor"
+    fi
+done
+
+# CPU Tweaks
+for path in /sys/devices/system/cpu/cpufreq/policy*; do
+    if [ -e "$path/scaling_governor" ]; then
+        apply "ondemand" "$path/scaling_governor"
+      
+       else
+       apply "interactive" "$path/scaling_governor"
+    fi
+done
+
+apply 1 /sys/devices/system/cpu/cpu1/online
+
+# Scheduling Optimizations
+if [ -d "/dev/stune/" ]; then
+    apply 1 /dev/stune/top-app/schedtune.prefer_idle
+    apply 1 /dev/stune/top-app/schedtune.boost
+fi
+
+# Scheduler Configurations
+if [ -f "/sys/kernel/debug/sched_features" ]; then
+    apply NEXT_BUDDY /sys/kernel/debug/sched_features
+    apply NO_TTWU_QUEUE /sys/kernel/debug/sched_features
+fi
+
+# Tweaking Scheduler for low latency
+apply 1000000 /proc/sys/kernel/sched_min_granularity_ns
+apply 1500000 /proc/sys/kernel/sched_wakeup_granularity_ns
+
+# Kernel Parameter Settings
+kernel_params="/proc/sys/kernel/sched_migration_cost_ns 500000
+/proc/sys/kernel/sched_latency_ns 1000000
+/proc/sys/kernel/sched_util_clamp_max 1024
+/proc/sys/kernel/sched_util_clamp_min 1024
+/proc/sys/kernel/sched_util_clamp_min_rt_default 1"
+
+echo "$kernel_params" | while read -r path value; do
+    apply_setting "$path" "$value"
+done
+
+elif grep -qi 'unisoc' /sys/firmware/devicetree/base/model; then
+    echo "Tweaks for Unisoc will be applied..."
+    apply_tweak "Unisoc"
+    # GPU Frequency
+	gpu_path=$(find /sys/class/devfreq/ -type d -iname "*.gpu" -print -quit 2>/dev/null)
+
+	if [ -d $gpu_path ]; then
+		freq=$(cat $gpu_path/available_frequencies | tr ' ' '\n' | sort -nr | head -n 1)
+		apply $freq $gpu_path/min_freq
+		apply $freq $gpu_path/max_freq
+	fi
+  
+	for mali in /sys/devices/platform/*.mali; do
+	  apply 0 $mali/tmu  
+	  apply 80 $mali/hispeed_load
+      apply 1 $mali/perf
+	done
+	
+  if [ -e /sys/power ]; then
+    chmod 000 /sys/power/cpufreq_min_limit
+    chmod 000 /sys/power/cpufreq_max_limit
+   fi
+   
+	# UFSHC Tweaks
+for path in /sys/class/devfreq/*.ufshc; do
+    if [ -e "$path/governor" ]; then
+        apply "ondemand" "$path/governor"
+        
+      else
+        apply "interactive" "$path/governor"
+    fi
+done
+
+# MMC Tweaks
+for path in /sys/class/devfreq/mmc*; do
+    if [ -e "$path/governor" ]; then
+        apply "ondemand" "$path/governor"
+        
+      else
+       apply "interactive" "$path/governor"
+    fi
+done
+
+# CPU Tweaks
+for path in /sys/devices/system/cpu/cpufreq/policy*; do
+    if [ -e "$path/scaling_governor" ]; then
+        apply "ondemand" "$path/scaling_governor"
+      
+       else
+       apply "interactive" "$path/scaling_governor"
+    fi
+done
+  
+elif grep -qi 'tensor' /sys/firmware/devicetree/base/model; then
+    echo "Tweaks for Google Tensor will be implemented..."
+    apply_tweak "Google Tensor"
+    	# GPU Frequency
+	gpu_path=$(find /sys/devices/platform/ -type d -iname "*.mali" -print -quit 2>/dev/null)
+
+	if [ -d $gpu_path ]; then
+		freq=$(cat $gpu_path/available_frequencies | tr ' ' '\n' | sort -nr | head -n 1)
+		apply $freq $gpu_path/scaling_min_freq
+		apply $freq $gpu_path/scaling_max_freq
+	fi
+	
+	for mali in /sys/devices/platform/*.mali; do
+	  apply 0 $mali/tmu  
+	  apply 80 $mali/hispeed_load
+      apply 1 $mali/perf
+	done 
+	
+  if [ -e /sys/power ]; then
+    chmod 000 /sys/power/cpufreq_min_limit
+    chmod 000 /sys/power/cpufreq_max_limit
+   fi
+	
+else
+    echo "Device not detected with known SoC."
+fi
+
+# Direct schedule after check 
+
+kernel="/proc/sys/kernel"
+vm="/proc/sys/vm"
+lmk="/sys/module/lowmemorykiller/parameters"
+module="/sys/module"
+crc="/mmc_core/parameters"
+IPV4="/proc/sys/net/ipv4"
+mglru="/sys/kernel/mm/lru_gen"
+dyn="/sys/kernel/dyn_fsync"
+hmp="/sys/kernel/hmp"
+uclamp="/dev/stune/top-app/uclamp.max"
+cpuset="/dev/cpuset"
+
+# Disable tracing
+for tracing_on in $(find /proc/sys/ -name tracing_on); do
+  write "$tracing_on" 0
+done
+
+# Disable log_ecn_error
+for log_ecn_error in $(find /sys/ -name log_ecn_error); do
+  write "$log_ecn_error" 0
+done
+
+# Disable snapshot_crashdumper
+for snapshot_crashdumper in $(find /sys/ -name snapshot_crashdumper); do
+  write "$snapshot_crashdumper" 0
+done
+
+# Disable Panic and related panic
+for panic in /sys/module/kernel/parameters/panic /proc/sys/kernel/panic_on_oops /sys/module/kernel/parameters/panic_on_warn /sys/module/kernel/parameters/pause_on_oops /proc/sys/vm/panic_on_oom /sys/module/scsc_mx/parameters/panic_record_delay /sys/power/cpuhotplug/enabled; do
+  write "$panic" 0
+done
+
+# Disable Printk and related parameters
+for printk in /sys/module/printk/parameters/cpu /sys/module/printk/parameters/pid /sys/module/printk/parameters/time /sys/module/printk/parameters/console_suspend /sys/module/printk/parameters/ignore_loglevel /proc/sys/kernel/printk_ratelimit_burst /proc/sys/kernel/printk_ratelimit /proc/sys/kernel/printk_devkmsg /sys/power/pm_async /proc/sys/kernel/sched_schedstats /proc/sys/debug/exception-trace /sys/module/printk/parameters/process; do
+  write "$printk" 0
+done
+
+# Disable Fsync if present
+if [ -d "$module/sync" ]; then
+  write "/$module/sync/parameters/fsync_enabled" 0
+fi
+
+# Disable Dynamic Fsync if present
+if [ -d "$dyn" ]; then
+  write "$dyn/Dyn_fsync_active" 0
+fi
+
+# Disable MMC CRC
+if [ -d "$module/mmc_core" ]; then
+  write "$crc/crc" 0
+  write "$crc/removable" 0
+  write "$crc/use_spi_crc" 0
+fi
+
+# Set MGLRU if any
+if [ -d "$mglru" ]; then
+  write "$mglru/min_ttl_ms" 5000
+fi
+
+# Set HMP if any
+if [ -d "$hmp" ]; then
+  write "$hmp/up_threshold" 700
+  write "$hmp/down_threshold" 256
+fi
+
+# Set LMK Minfree
+write "$lmk/minfree" "10240,16384,18432,20480,30720,33280"
+
+#  to set I/O Scheduler parameters for all block devices
+  for blok in /sys/block/*/queue; do
+    write "$blok/scheduler" cfq
+    write "$blok/add_random" 0
+    write "$blok/iostats" 0
+    write "$blok/nomerges" 2
+    write "$blok/rotational" 0
+    write "$blok/nr_requests" 64
+    write "$blok/read_ahead_kb" 64
+    write "$blok/rq_affinity" 2
+  done
+
+# Set kernel scheduler parameters
+write "$kernel/sched_child_runs_first" 1
+write "$kernel/sched_cfs_boost" 1
+write "$kernel/sched_tunable_scaling" 1
+write "$kernel/sched_autogroup_enabled" 0
+write "$kernel/perf_cpu_time_max_percent" 10
+write "$kernel/sched_is_big_little" 1
+write "$kernel/sched_sync_hint_enable" 1
+write "$kernel/sched_latency_ns" 400000
+write "$kernel/sched_min_granularity_ns" 100000
+write "$kernel/sched_wakeup_granularity_ns" 500000
+write "$kernel/sched_min_task_util_for_colocation" 0
+write "$kernel/sched_nr_migrate" 32
+write "$kernel/timer_migration" 0
+write "$kernel/nmi_watchdog" 0
+write "$kernel/compat-log" 0
+write "$kernel/printk" "0 0 0 0"
+
+# Set VM memory parameters
+write "$vm/vfs_cache_pressure" 85
+write "$vm/overcommit_memory" 1
+write "$vm/min_free_kbytes" 65536
+write "$vm/dirty_background_ratio" 10
+write "$vm/dirty_ratio" 40
+write "$vm/dirty_expire_centisecs" 3000
+write "$vm/dirty_writeback_centisecs" 1500
+write "$vm/compaction_proactiveness" 0
+write "$vm/page-cluster" 0
+write "$vm/laptop_mode" 0
+write "$vm/compact_memory" 0
+write "$vm/extra_free_kbytes" 29615
+write "$vm/oom_kill_allocating_task" 1
+write "$vm/stat_interval" 120
+write "$vm/stat_interval" 10
+write "$vm/drop_caches" 3
+
+# Disable GPU debugging (if available)
+GPU_KGSL="/sys/class/kgsl/kgsl"
+if [ -d "$GPU_KGSL" ]; then
+  write "$GPU_KGSL/log_level_cmd" 0
+  write "$GPU_KGSL/log_level_ctxt" 0
+  write "$GPU_KGSL/log_level_drv" 0
+  write "$GPU_KGSL/log_level_mem" 0
+  write "$GPU_KGSL/log_level_pwr" 0
+fi
+
+# tweak for UCLAMP scheduler
+if [ -e "$uclamp_path" ]; then
+    # credit yakt
+    top_app="${cpuset}/top-app"
+    write_value "$top_app/uclamp.max" max
+    write_value "$top_app/uclamp.min" 10
+    write_value "$top_app/uclamp.boosted" 1
+    write_value "$top_app/uclamp.latency_sensitive" 1
+    foreground="${cpuset}/foreground"
+    write_value "$foreground/uclamp.max" 50
+    write_value "$foreground/uclamp.min" 0
+    write_value "$foreground/uclamp.boosted" 0
+    write_value "$foreground/uclamp.latency_sensitive" 0
+    background="${cpuset}/background"
+    write_value "$background/uclamp.max" max
+    write_value "$background/uclamp.min" 20
+    write_value "$background/uclamp.boosted" 0
+    write_value "$background/uclamp.latency_sensitive" 0
+    sys_bg="${cpuset}/system-background"
+    write_value "$sys_bg/uclamp.min" 0
+    write_value "$sys_bg/uclamp.max" 40
+    write_value "$sys_bg/uclamp.boosted" 0
+    write_value "$sys_bg/uclamp.latency_sensitive" 0
+    sysctl -w kernel.sched_util_clamp_min_rt_default=0
+    sysctl -w kernel.sched_util_clamp_min=128
+fi
+
+# Set workqueue
+write "/sys/module/workqueue/parameters/power_efficient" "Y"
+write "/sys/module/workqueue/parameters/disable_numa" "Y"
+
+# Disable rotation suggestions
+su -c "cmd settings put secure show_rotation_suggestions 0"
+
+# Set Zswap if any
+if [ -d "$module/zswap" ]; then
+  write "$module/zswap/parameters/compressor" lz4
+  write "$module/zswap/parameters/zpool" zsmalloc
+fi
+
+# Disable PM debug
+write "/sys/kernel/debug/pm_debug/enable_off" 1
+
+echo "All configurations applied successfully."
+
+# Function to check whether MIUI service is running
+is_miui_service_running() {
+    if [[ "$(pgrep -f com.miui)" != "" ]]; then
+        return 0  
+    else
+        return 1  
+    fi
+}
+
+apps=(
+    "com.miui.systemAdSolution"
+    "com.miui.analytics"
+    "com.xiaomi.joyose/.smartop.gamebooster.receiver.BoostRequestReceiver"
+    "com.xiaomi.joyose/.smartop.SmartOpService"
+    "com.xiaomi.joyose.sysbase.MetokClService"
+    "com.miui.daemon/.performance.cloudcontrol.CloudControlSyncService"
+    "com.miui.daemon/.performance.statistics.services.GraphicDumpService"
+    "com.miui.daemon/.performance.statistics.services.AtraceDumpService"
+    "com.miui.daemon/.performance.SysoptService"
+    "com.miui.daemon/.performance.MiuiPerfService"
+    "com.miui.daemon/.performance.server.ExecutorService"
+    "com.miui.daemon/.mqsas.jobs.EventUploadService"
+    "com.miui.daemon/.mqsas.jobs.FileUploadService"
+    "com.miui.daemon/.mqsas.jobs.HeartBeatUploadService"
+    "com.miui.daemon/.mqsas.providers.MQSProvider"
+    "com.miui.daemon/.performance.provider.PerfTurboProvider"
+    "com.miui.daemon/.performance.system.am.SysoptjobService"
+    "com.miui.daemon/.performance.system.am.MemCompactService"
+    "com.miui.daemon/.performance.statistics.services.FreeFragDumpService"
+    "com.miui.daemon/.performance.statistics.services.DefragService"
+    "com.miui.daemon/.performance.statistics.services.MeminfoService"
+    "com.miui.daemon/.performance.statistics.services.IonService"
+    "com.miui.daemon/.performance.statistics.services.GcBoosterService"
+    "com.miui.daemon/.mqsas.OmniTestReceiver"
+)
+
+if is_miui_service_running; then
+    echo "MIUI services are active. Disabling the mentioned apps."
+
+    for app in "${apps[@]}"; do
+        echo "Disable: $app"
+        pm disable-user "$app" || echo "Gagal menonaktifkan: $app"
+    done
+    
+    echo "Menonaktifkan: com.miui.powerkeeper/com.miui.powerkeeper.statemachine.PowerStateMachineService"
+    pm disable com.miui.powerkeeper/com.miui.powerkeeper.statemachine.PowerStateMachineService || echo "Failed to disable: com.miui.powerkeeper/com.miui.powerkeeper.statemachine.PowerStateMachineService"
+else
+    echo "MIUI service is not active. Skipping app deactivation."
+fi
+
+# Reduce Heat (@riprog )
+
+system_table_set activity_manager_constants \
+    max_cached_processes=0, \
+    background_settle_time=0, \
+    fgservice_min_shown_time=0, \
+    fgservice_min_report_time=0, \
+    fgservice_screen_on_before_time=0, \
+    fgservice_screen_on_after_time=0, \
+    content_provider_retain_time=0, \
+    gc_timeout=0, \
+    gc_min_interval=0, \
+    full_pss_min_interval=0, \
+    full_pss_lowered_interval=0, \
+    power_check_interval=0, \
+    power_check_max_cpu_1=0, \
+    power_check_max_cpu_2=0, \
+    power_check_max_cpu_3=0, \
+    power_check_max_cpu_4=0, \
+    service_usage_interaction_time=0, \
+    usage_stats_interaction_interval=0, \
+    service_restart_duration=0, \
+    service_reset_run_duration=0, \
+    service_restart_duration_factor=0, \
+    service_min_restart_time_between=0, \
+    service_max_inactivity=0, \
+    service_bg_start_timeout=0, \
+    CUR_MAX_CACHED_PROCESSES=0, \
+    CUR_MAX_EMPTY_PROCESSES=0, \
+    CUR_TRIM_EMPTY_PROCESSES=0, \
+    CUR_TRIM_CACHED_PROCESSES=0
+
+# Networking tweaks
+if grep -q bbr2 /proc/sys/net/ipv4/tcp_available_congestion_control; then
+    apply "bbr2" /proc/sys/net/ipv4/tcp_congestion_control
+else
+    apply "cubic" /proc/sys/net/ipv4/tcp_congestion_control
+fi
+
+apply "1" /proc/sys/net/ipv4/tcp_low_latency
+apply "1" /proc/sys/net/ipv4/tcp_ecn
+apply "3" /proc/sys/net/ipv4/tcp_fastopen
+apply "1" /proc/sys/net/ipv4/tcp_sack
+apply "0" /proc/sys/net/ipv4/tcp_timestamps
+
+echo " kl dh slsai"
+
