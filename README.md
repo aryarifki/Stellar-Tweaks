@@ -9,10 +9,10 @@ Yay! another kernel tweaks
 
 ## What is Hiyorix Tweaks?
 
-**Hiyorix Tweaks** is a Magisk module designed to edit Android kernel parameters with multiple profiles for Snapdragon, Mediatek, Exynos, Unisoc, and Tensor processors. It also includes tweaks for all devices. The module features a minimalist and cute design 🥰 (Yet another performance module).
+**Hiyorix Tweaks** is a Magisk module designed to edit Android kernel parameters with multiple profiles for Snapdragon, Mediatek, Exynos, Unisoc, and Tensor processors. It also includes tweaks for all devices. The module features a minimalist (Yet another performance module).
 
 <div align="center">
-  <img width="200" src="https://github.com/kanaodnd/kanaokturu/blob/main/7d8930ab17d6bf6e8f94c8be77c8e6ee.gif">
+  <img width="150" src="https://github.com/kanaodnd/kanaokturu/blob/main/0548dd4afa665874c0c568fe5c189bda.gif">
 </div>
 
 
@@ -21,7 +21,7 @@ Yay! another kernel tweaks
 If you encounter any bugs, feel free to tag me in the group discussion or [PM me directly.](https://t.me/kanaochar).Please avoid asking unnecessary questions or things that are already clear. Gathering PMs 🥰.
 
 <div align="center">
-  <img width="200" src="https://github.com/kanaodnd/kanaokturu/blob/main/pinterestdownloader.com-1739649484.808935.gif">
+  <img width="150" src="https://github.com/kanaodnd/kanaokturu/blob/main/7d8930ab17d6bf6e8f94c8be77c8e6ee.gif">
 </div>
 
 
@@ -31,11 +31,17 @@ If you encounter any bugs, feel free to tag me in the group discussion or [PM me
 - This module should compatible with all ROM, Stock Rom or even porting system. 
 - Support and bug reports can be submitted via [group](https://t.me/hosshi_chat).
 
+<div align="center">
+  <img width="150" src="https://github.com/kanaodnd/kanaokturu/blob/main/pinterestdownloader.com-1739649484.808935.gif">
+</div>
+
 ## Contribution
 
 If you'd like to contribute or provide suggestions, please open a **Pull Request** or contact me via [telegram](https://t.me/kanaochar).
 
+<div align="center">
+  <img width="150" src="https://github.com/kanaodnd/kanaokturu/blob/main/c6c009dc350e388818ff4f61a0f06c74.gif">
+</div>
 
-> just see       
-> the hobby won't gone till u done
+
 
