@@ -57,12 +57,46 @@ if grep -qi 'exynos' /sys/firmware/devicetree/base/model; then
     echo "Tweaks for Exynos will be implemented..."
     apply_tweak "Exynos"
 
-	for mali in /sys/devices/platform/*.mali; do
-	apply 0 $mali/tmu
-	apply 80 $mali/hispeed_load
-	apply 1 $mali/perf
-    done
-    
+# Loop for *.mali files
+for mali in /sys/devices/platform/*.mali; do
+    [ -e "$mali/tmu" ] && apply 0 "$mali/tmu"
+    [ -e "$mali/hispeed_load" ] && apply 80 "$mali/hispeed_load"
+    [ -e "$mali/perf" ] && apply 1 "$mali/perf"
+    [ -e "$mali/throttling1" ] && chmod 000 "$mali/throttling1"
+    [ -e "$mali/throttling2" ] && chmod 000 "$mali/throttling2"
+    [ -e "$mali/throttling3" ] && chmod 000 "$mali/throttling3"
+    [ -e "$mali/throttling4" ] && chmod 000 "$mali/throttling4"
+done
+
+# Loop for *.BIG files
+for big in /sys/devices/platform/*.BIG; do
+    [ -e "$big/all_temp" ] && chmod 000 "$big/all_temp"
+    [ -e "$big/hotplug_in_temp" ] && chmod 000 "$big/hotplug_in_temp"
+    [ -e "$big/hotplug_out_temp" ] && chmod 000 "$big/hotplug_out_temp"
+done
+
+# Loop for *.LITTLE files
+for little in /sys/devices/platform/*.LITTLE; do
+    [ -e "$little/all_temp" ] && chmod 000 "$little/all_temp"
+    [ -e "$little/hotplug_in_temp" ] && chmod 000 "$little/hotplug_in_temp"
+    [ -e "$little/hotplug_out_temp" ] && chmod 000 "$little/hotplug_out_temp"
+done
+
+# Loop for *.G3D files
+for g3d in /sys/devices/platform/*.G3D; do
+    [ -e "$g3d/all_temp" ] && chmod 000 "$g3d/all_temp"
+    [ -e "$g3d/hotplug_in_temp" ] && chmod 000 "$g3d/hotplug_in_temp"
+    [ -e "$g3d/hotplug_out_temp" ] && chmod 000 "$g3d/hotplug_out_temp"
+done
+
+# Checking for files in /sys/power
+if [ -e /sys/power/cpufreq_min_limit ]; then
+    chmod 000 /sys/power/cpufreq_min_limit
+fi
+if [ -e /sys/power/cpufreq_max_limit ]; then
+    chmod 000 /sys/power/cpufreq_max_limit
+fi
+   
 settings put global ble_scan_always_enabled 0
 settings put global wifi_scan_always_enabled 0
 settings put global hotword_detection_enabled 0
@@ -103,6 +137,11 @@ done
 			apply $freq $path
 		done &
 	fi
+	
+	if [ -e /sys/power ]; then
+    chmod 000 /sys/power/cpufreq_min_limit
+    chmod 000 /sys/power/cpufreq_max_limit
+    fi
 
 	if [ -d /sys/devices/system/cpu/bus_dcvs/LLCC ]; then
     for path in /sys/devices/system/cpu/bus_dcvs/LLCC/*/max_freq \
@@ -263,6 +302,11 @@ elif grep -qi 'mediatek' /sys/firmware/devicetree/base/model; then
 chmod 444 /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
 default_gov="$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor)"
 
+if [ -e /sys/power ]; then
+    chmod 000 /sys/power/cpufreq_min_limit
+    chmod 000 /sys/power/cpufreq_max_limit
+   fi
+   
 # Enable SWPM
 echo 65535 1 > /proc/swpm/enable
 echo 0 > /proc/swpm/pmu_ms_mode
