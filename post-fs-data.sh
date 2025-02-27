@@ -2,9 +2,9 @@
 
 MODULE_PROP="/data/adb/modules/hiyorix/module.prop"
 
-if [ -f "/data/adb/ksud" ]; then
+if [ -f "/data/adb/ksu" ]; then
   root_method="KernelSU"
-elif [ "$(which magisk)" ]; then
+elif [ "/data/adb/magisk" ]; then
   root_method="Magisk"
 elif [ -f "/data/adb/ap" ]; then
   root_method="APatch"
@@ -14,16 +14,16 @@ fi
 
 case "$root_method" in
   "KernelSU")
-    module_description="✨ This module improves Overall performance! ✨ [ Service : Running ✅ ] [ Detect : KernelSU ♻️ ]"
+    module_description="Alternative Module 𝘗𝘦𝘳𝘧𝘰𝘳𝘮𝘢𝘯𝘤𝘦-𝘉𝘢𝘭𝘢𝘯𝘤𝘦-𝘉𝘢𝘵𝘵𝘦𝘳𝘺 | Service: Awake (　・ω・) 💧 | KernelSU✨️"
     ;;
   "Magisk")
-    module_description="✨ This module improves Overall performance! ✨ [ Service : Running ✅ ] [ Detect : Magisk ♻️ ]"
+    module_description="Alternative Module 𝘗𝘦𝘳𝘧𝘰𝘳𝘮𝘢𝘯𝘤𝘦-𝘉𝘢𝘭𝘢𝘯𝘤𝘦-𝘉𝘢𝘵𝘵𝘦𝘳𝘺 | Service: Awake (　・ω・) 💧 | Magisk✨️"
     ;;
   "APatch")
-    module_description="✨ This module improves Overall performance! ✨ [ Service : Running ✅ ] [ Detect : APatch ♻️ ]"
+    module_description="Alternative Module 𝘗𝘦𝘳𝘧𝘰𝘳𝘮𝘢𝘯𝘤𝘦-𝘉𝘢𝘭𝘢𝘯𝘤𝘦-𝘉𝘢𝘵𝘵𝘦𝘳𝘺 | Service: Awake (　・ω・) 💧 | APatch✨️"
     ;;
   "Unknown")
-    module_description="✨ This module improves Overall performance! ✨ [ Service : Running ✅ ] [ Detect : Unknown ❓ ]"
+    module_description="Alternative Module 𝘗𝘦𝘳𝘧𝘰𝘳𝘮𝘢𝘯𝘤𝘦-𝘉𝘢𝘭𝘢𝘯𝘤𝘦-𝘉𝘢𝘵𝘵𝘦𝘳𝘺 | Service: Awake (　・ω・) 💧 | Unknown?"
     ;;
 esac
 
@@ -31,7 +31,7 @@ sed -i "s/^description=.*/description=$module_description/" "$MODULE_PROP"
 
 
 ###########################################
-# Wi-Fi Logs (thx to @LeanHijosdesusMadres)
+# Wi-Fi Logs 
 ## Deleting and recreating Wi-Fi logs
 rm -rf /data/vendor/wlan_logs
 touch /data/vendor/wlan_logs
@@ -80,10 +80,20 @@ done
 ## Enabling fast charging mode
 echo "1" > /sys/kernel/fast_charge/force_fast_charge
 
+# disable vsync on surfaceflinger
+service call SurfaceFlinger 1036 i32 0
+
 # Unity Fix 
 ## Setting up Unity parameters
-echo "com.miHoYo., com.activision., UnityMain, libunity.so, libil2cpp.so, libfb.so" > /proc/sys/kernel/sched_lib_name
-echo 255 > /proc/sys/kernel/sched_lib_mask_force
+    lib_names="com.miHoYo. com.activision. com.garena. com.roblox. com.epicgames com.dts. UnityMain libunity.so libil2cpp.so libmain.so libcri_vip_unity.so libopus.so libxlua.so libUE4.so libAsphalt9.so libnative-lib.so libRiotGamesApi.so libResources.so libagame.so libapp.so libflutter.so libMSDKCore.so libFIFAMobileNeon.so libUnreal.so libEOSSDK.so libcocos2dcpp.so libgodot_android.so libgdx.so libgdx-box2d.so libminecraftpe.so libLive2DCubismCore.so libyuzu-android.so libryujinx.so libcitra-android.so libhdr_pro_engine.so libandroidx.graphics.path.so libeffect.so"
+    for path in /proc/sys/kernel/sched_lib_name /proc/sys/kernel/sched_lib_mask_force /proc/sys/walt/sched_lib_name /proc/sys/walt/sched_lib_mask_force; do
+        if [ -w "$path" ]; then
+            case "$path" in
+                */sched_lib_name) echo "$lib_names" > "$path" ;;
+                */sched_lib_mask_force) echo "255" > "$path" ;;
+            esac
+        fi
+    done
 ####################################################
 
 ### Bluetooth and Network Logging ###
@@ -168,6 +178,13 @@ resetprop -n persist.sys.dalvik.hyperthreading true
 resetprop -n persist.sys.dalvik.multithread true
 resetprop -n dalvik.hyperthreading.enabled true
 resetprop -n dalvik.multithread.enabled true
+
+### Disable Dalvik Log&Debug Settings ###
+resetprop -n dalvik.vm.check-dex-sum false
+resetprop -n dalvik.vm.checkjni false
+resetprop -n dalvik.vm.dex2oat-minidebuginfo false
+resetprop -n dalvik.vm.minidebuginfo false
+resetprop -n dalvik.vm.verify-bytecode false
 
 ### Texture Optimization for Performance ###
 resetprop -n hwui.texture_cache.size 72
