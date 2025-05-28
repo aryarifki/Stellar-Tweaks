@@ -1,4 +1,4 @@
-## Stellar Scheduler 
+## Stellar Tweaks Scheduler 
 Yay! another kernel tweaks
 
 <img align="center" width="800" src="https://github.com/kanaodnd/kanaokturu/blob/main/Group%201%20%5BA48DE38%5D.png">
@@ -7,7 +7,7 @@ Yay! another kernel tweaks
 - **Channel Post:** [https://t.me/hosshi_prjkt](https://t.me/hosshi_prjkt)
 - **Discussion:** [https://t.me/hosshi_chat](https://t.me/hosshi_chat)
 
-## What is Stellar Scheduler?
+## What is Stellar Tweaks Scheduler?
 A Scheduler That Maintain Performance CPU, Unlock Potentional CPU, But keeps battery in good health and Battery backup. AIO (All-In-One) Performance at Your Choose.
 Android kernel parameters with multiple profiles for Snapdragon, Mediatek, Exynos. Even Unisoc, Or even Socs that you don't recognize.
 
