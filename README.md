@@ -1,4 +1,4 @@
-## Stellar Tweaks
+## Stellar Scheduler 
 Yay! another kernel tweaks
 
 <img align="center" width="800" src="https://github.com/kanaodnd/kanaokturu/blob/main/Group%201%20%5BA48DE38%5D.png">
@@ -7,9 +7,9 @@ Yay! another kernel tweaks
 - **Channel Post:** [https://t.me/hosshi_prjkt](https://t.me/hosshi_prjkt)
 - **Discussion:** [https://t.me/hosshi_chat](https://t.me/hosshi_chat)
 
-## What is Stellar Tweaks?
-
-**Stellar Tweaks** is a Magisk module designed to edit Android kernel parameters with multiple profiles for Snapdragon, Mediatek, Exynos, Unisoc, and Tensor processors. It also includes tweaks for all devices. The module features a minimalist (Yet another performance module).
+## What is Stellar Scheduler?
+A Scheduler That Maintain Performance CPU, Unlock Potentional CPU, But keeps battery in good health and Battery backup. AIO (All-In-One) Performance at Your Choose.
+Android kernel parameters with multiple profiles for Snapdragon, Mediatek, Exynos. Even Unisoc, Or even Socs that you don't recognize.
 
 <div align="center">
   <img width="150" src="https://github.com/kanaodnd/kanaokturu/blob/main/0548dd4afa665874c0c568fe5c189bda.gif">
@@ -27,7 +27,7 @@ If you encounter any bugs, feel free to tag me in the group discussion or [PM me
 
 ## Notes
 
-- Make sure to back up your data before installing this mod.
+- Just flash and see. This module will work automaticlly
 - This module should compatible with all ROM, Stock Rom or even porting system. 
 - Support and bug reports can be submitted via [group](https://t.me/hosshi_chat).
 
