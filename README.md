@@ -1,47 +1,56 @@
-## Stellar Tweaks Scheduler 
-Yay! another kernel tweaks
+# ✨ Stellar Tweaks 
+*A another kernel scheduler for Balancing you need, feel a harmony melody. Stellar Stellar~*  
 
-<img align="center" width="800" src="https://github.com/kanaodnd/kanaokturu/blob/main/Group%201%20%5BA48DE38%5D.png">
+<div align="center">
 
-**Links:**
-- **Channel Post:** [https://t.me/hosshi_prjkt](https://t.me/hosshi_prjkt)
-- **Discussion:** [https://t.me/hosshi_chat](https://t.me/hosshi_chat)
+[![License](https://img.shields.io/badge/License-Apache_2.0-6f42c1?style=for-the-badge&logo=apache&logoColor=white&labelColor=0D1117)](LICENSE) 
+[![Release](https://img.shields.io/github/v/release/kanaodnd/Stellar-Tweaks?color=6f42c1&labelColor=0D1117&style=for-the-badge&logo=github)](https://github.com/kanaodnd/Stellar-Tweaks/releases)
 
-## What is Stellar Tweaks Scheduler?
-A Scheduler That Maintain Performance CPU, Unlock Potentional CPU, But keeps battery in good health and Battery backup. AIO (All-In-One) Performance at Your Choose.
+</div>
+
+---
+
+## Join the community
+*New at this? you can certain ask in the community below!*
+
+[![Channel](https://img.shields.io/badge/CHANNEL-@hosshi__prjkt-9cf?style=for-the-badge&logo=telegram&logoColor=white&color=26A5E4)](https://t.me/hosshi_prjkt)
+[![Group](https://img.shields.io/badge/GROUP-Discussions-9cf?style=for-the-badge&logo=telegram&logoColor=white&color=26A5E4)](https://t.me/hosshi_chat)
+
+---
+
+
+## What is Stellar Tweaks?
+A Scheduler That Maintain `Performance CPU`, Unlock Potentional CPU, But keeps battery in good health and Battery backup. AIO (All-In-One) Performance at Your Choose.
 Android kernel parameters with multiple profiles for Snapdragon, Mediatek, Exynos. Even Unisoc, Or even Socs that you don't recognize.
 
 <div align="center">
-  <img width="150" src="https://github.com/kanaodnd/kanaokturu/blob/main/0548dd4afa665874c0c568fe5c189bda.gif">
+  <img width="160" src="https://github.com/kanaodnd/kanaokturu/blob/main/0548dd4afa665874c0c568fe5c189bda.gif" alt="Stellar Demo">
 </div>
 
+---
 
-## Getting Bugs?
+## Bug report?
+*Report in Telegram group / You can pull issues in below*
 
-If you encounter any bugs, feel free to tag me in the group discussion or [PM me directly.](https://t.me/kanaochar).Please avoid asking unnecessary questions or things that are already clear. Gathering PMs 🥰.
+[![Bug](https://img.shields.io/badge/REPORT-Bug-9cf?style=for-the-badge&logo=github&logoColor=white&color=FF4D4D)](https://github.com/kanaodnd/Stellar-Tweaks/issues)
 
-<div align="center">
-  <img width="150" src="https://github.com/kanaodnd/kanaokturu/blob/main/7d8930ab17d6bf6e8f94c8be77c8e6ee.gif">
-</div>
+---
 
+## Download 
 
-## Notes
-
-- Just flash and see. This module will work automaticlly
-- This module should compatible with all ROM, Stock Rom or even porting system. 
-- Support and bug reports can be submitted via [group](https://t.me/hosshi_chat).
-
-<div align="center">
-  <img width="150" src="https://github.com/kanaodnd/kanaokturu/blob/main/pinterestdownloader.com-1739649484.808935.gif">
-</div>
-
-## Contribution
-
-If you'd like to contribute or provide suggestions, please open a **Pull Request** or contact me via [telegram](https://t.me/kanaochar).
-
-<div align="center">
-  <img width="150" src="https://github.com/kanaodnd/kanaokturu/blob/main/c6c009dc350e388818ff4f61a0f06c74.gif">
-</div>
+[![Download](https://img.shields.io/badge/GET-RELEASE-9cf?style=for-the-badge&logo=github&logoColor=white&color=181717)](https://github.com/kanaodnd/Stellar-Tweaks/releases)
+[![Download](https://img.shields.io/badge/GET-RELEASE-9cf?style=for-the-badge&logo=github&logoColor=white&color=181717)](https://github.com/kanaodnd/Stellar-Tweaks/releases)
 
 
+## Donate? 
+*Wow, you are a generous person who want this update continue, thank you!*
 
+[![Donate](https://img.shields.io/badge/Support-Our_Project-6f42c1?style=for-the-badge&logo=heart&logoColor=white&labelColor=0D1117)](https://t.me/Ranblings/13)
+
+---
+
+## Main effect highlights
+```bash
+1 - More faster? or more Saving battery?
+2 - Just flash and see, not again complicated!
+3 - The performance you need, no need to confuse!
