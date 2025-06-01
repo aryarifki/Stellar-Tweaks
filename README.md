@@ -2,6 +2,10 @@
 *A another kernel scheduler for Balancing you need, feel a harmony melody. Stellar Stellar~*  
 
 <div align="center">
+<img src="https://github.com/kanaodnd/kanaokturu/raw/main/a740af124b50737a86e4c4782ed9c4c7.jpg" alt="Gambar">
+</div>
+
+<div align="center">
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-6f42c1?style=for-the-badge&logo=apache&logoColor=white&labelColor=0D1117)](LICENSE) 
 [![Release](https://img.shields.io/github/v/release/kanaodnd/Stellar-Tweaks?color=6f42c1&labelColor=0D1117&style=for-the-badge&logo=github)](https://github.com/kanaodnd/Stellar-Tweaks/releases)
@@ -11,7 +15,7 @@
 ---
 
 ## Join the community
-*New at this? you can certain ask in the community below!*
+*New at this? you can certain ask in the our community below!*
 
 [![Channel](https://img.shields.io/badge/CHANNEL-@hosshi__prjkt-9cf?style=for-the-badge&logo=telegram&logoColor=white&color=26A5E4)](https://t.me/hosshi_prjkt)
 [![Group](https://img.shields.io/badge/GROUP-Discussions-9cf?style=for-the-badge&logo=telegram&logoColor=white&color=26A5E4)](https://t.me/hosshi_chat)
@@ -20,8 +24,8 @@
 
 
 ## What is Stellar Tweaks?
-A Scheduler That Maintain `Performance CPU`, Unlock Potentional CPU, But keeps battery in good health and Battery backup. AIO (All-In-One) Performance at Your Choose.
-Android kernel parameters with multiple profiles for Snapdragon, Mediatek, Exynos. Even Unisoc, Or even Socs that you don't recognize.
+A Scheduler That Maintain `Performance CPU`, Unlock Potentional CPU, But keeps battery in good health and Battery backup. AIO (All-In-One) See Advanced Performance at Your Choose.
+Android kernel parameters with multiple profiles for `Snapdragon`, `Mediatek`, `Exynos`. Even `Unisoc`, Or even Socs that you don't recognize.
 
 <div align="center">
   <img width="160" src="https://github.com/kanaodnd/kanaokturu/blob/main/0548dd4afa665874c0c568fe5c189bda.gif" alt="Stellar Demo">
@@ -30,7 +34,7 @@ Android kernel parameters with multiple profiles for Snapdragon, Mediatek, Exyno
 ---
 
 ## Bug report?
-*Report in Telegram group / You can pull issues in below*
+*Report in Telegram group or You can pull issues in below*
 
 [![Bug](https://img.shields.io/badge/REPORT-Bug-9cf?style=for-the-badge&logo=github&logoColor=white&color=FF4D4D)](https://github.com/kanaodnd/Stellar-Tweaks/issues)
 
