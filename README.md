@@ -14,7 +14,7 @@
 
 
 ## Join the community
-*New at this? you can certain ask in the our community below!*
+*New at this? don't worry you can certain ask in the our community below!*
 
 [![Channel](https://img.shields.io/badge/CHANNEL-@hosshi__prjkt-9cf?style=for-the-badge&logo=telegram&logoColor=white&color=26A5E4)](https://t.me/hosshi_prjkt)
 [![Group](https://img.shields.io/badge/GROUP-Discussions-9cf?style=for-the-badge&logo=telegram&logoColor=white&color=26A5E4)](https://t.me/hosshi_chat)
