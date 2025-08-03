@@ -12,6 +12,41 @@
 
 </div>
 
+## 📦 Installation
+
+### Prerequisites
+- Rooted Android device with **Magisk v20.4+** or **KernelSU**
+- For WebUI access: **KsuWebUI Standalone** or **MMRL** (recommended)
+
+### Quick Install
+1. Download the latest release ZIP file
+2. Flash through **Magisk Manager** or **KernelSU Manager**
+3. Reboot your device
+4. Access WebUI through KsuWebUI or MMRL app
+
+### Manual Installation
+```bash
+# For Magisk
+adb push stellar-tweaks.zip /sdcard/
+# Flash in Magisk Manager
+
+# For KernelSU  
+adb push stellar-tweaks.zip /sdcard/
+# Flash in KernelSU Manager
+```
+
+### WebUI Access
+- **KsuWebUI Standalone**: Automatically opens Stellar Tweaks interface
+- **MMRL**: Navigate to Modules → Stellar Tweaks → WebUI
+- **Manual**: Use `action.sh` script for direct access
+
+### Features
+- ✅ **Multi-Chipset Support**: Snapdragon, MediaTek, Exynos, Unisoc, Tensor
+- ✅ **Real-time WebUI Interface**: Complete control panel
+- ✅ **Gaming Optimization**: Automatic performance profiles  
+- ✅ **Battery Management**: Intelligent power saving
+- ✅ **Thermal Control**: Advanced temperature management
+
 
 ## Join the community
 *New at this? don't worry you can certain ask in the our community below!*

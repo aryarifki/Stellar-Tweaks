@@ -1,0 +1,29 @@
+# Build and temporary files
+*.tmp
+*.log
+.DS_Store
+Thumbs.db
+
+# Development files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Archive files
+*.zip
+*.rar
+*.7z
+
+# Backup files
+*.bak
+*.backup
+
+# Personal test files
+test_*
+temp_*
+/tmp/
+
+# Git specific
+.gitattributes

@@ -16,13 +16,16 @@
 # limitations under the License.
 #
 
-# Wait when its done
-while [ "$(getprop sys.boot_completed | tr -d '\r')" != "1" ]; do sleep 10; done
+# This script will be executed in post-fs-data mode
 
-# Ensure System Ready
-sleep 35  
-      
-# Start MonPerf
-stellars
+# Set up Stellar Tweaks directories and initial configuration
+basedir="/data/adb/.config/stellar"
 
+# Ensure directories exist
+mkdir -p "$basedir"
 
+# Set up initial configuration if not exists
+[ ! -f "$basedir/soc" ] && echo "0" > "$basedir/soc"
+
+# Log post-fs-data execution
+echo "Stellar Tweaks post-fs-data executed at $(date)" >> "$basedir/stellar.log"

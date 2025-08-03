@@ -1,0 +1,38 @@
+# Stellar Tweaks System Properties
+# These properties optimize system behavior for better performance
+
+# Performance optimizations
+ro.vendor.qti.sys.fw.bg_apps_limit=60
+ro.vendor.qti.sys.fw.bservice_enable=true
+ro.sys.fw.dex2oat_thread_count=4
+
+# GPU optimizations
+debug.sf.early_phase_offset_ns=1500000
+debug.sf.early_app_phase_offset_ns=1500000
+debug.sf.early_gl_phase_offset_ns=3000000
+debug.sf.early_gl_app_phase_offset_ns=15000000
+
+# Memory management
+ro.config.fha_enable=true
+ro.sys.fw.bg_apps_limit=32
+ro.config.dha_cached_max=16
+ro.config.dha_empty_max=42
+
+# Network optimizations
+net.tcp.buffersize.default=4096,65536,524288,4096,65536,524288
+net.tcp.buffersize.wifi=524288,2097152,4194304,524288,2097152,4194304
+net.tcp.buffersize.lte=524288,1048576,2097152,524288,1048576,2097152
+
+# Touch responsiveness
+touch.pressure.scale=0.001
+view.scroll_friction=0.008
+
+# Disable unnecessary features for performance
+ro.config.enable.hw_accel=true
+video.accelerate.hw=1
+debug.composition.type=c2d
+debug.performance.tuning=1
+
+# Stellar Tweaks identification
+ro.stellar.tweaks.version=11.0
+ro.stellar.tweaks.enabled=true
