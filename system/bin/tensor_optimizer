@@ -1,0 +1,306 @@
+#!/system/bin/sh
+
+#
+# Copyright (C) 2024-2025 Kanao - Stellar Tweaks  
+# Google Tensor G1 Core Optimizer
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+config_file="/data/adb/.config/stellar"
+
+# Function to apply parameters safely
+stellar_apply_param() {
+    [ ! -f "$2" ] && return 1
+    chmod 666 "$2" >/dev/null 2>&1
+    echo "$1" > "$2" 2>/dev/null
+    chmod 444 "$2" >/dev/null 2>&1
+}
+
+# Function to write parameters without changing permissions
+stellar_write_param() {
+    [ ! -f "$2" ] && return 1
+    chmod 666 "$2" &>/dev/null
+    echo "$1" > "$2" &>/dev/null
+}
+
+# Tensor G1 tri-cluster CPU optimization
+optimize_tensor_cpu() {
+    local mode="$1"
+    
+    # LITTLE cores (0-3): Cortex-A55 - efficiency focused
+    for cpu in 0 1 2 3; do
+        cpu_path="/sys/devices/system/cpu/cpu$cpu"
+        [ ! -d "$cpu_path" ] && continue
+        
+        case "$mode" in
+            "performance")
+                # Set performance governor for gaming
+                stellar_apply_param "performance" "$cpu_path/cpufreq/scaling_governor"
+                # Set max frequency for LITTLE cores
+                max_freq=$(cat "$cpu_path/cpufreq/cpuinfo_max_freq" 2>/dev/null)
+                [ -n "$max_freq" ] && stellar_apply_param "$max_freq" "$cpu_path/cpufreq/scaling_max_freq"
+                ;;
+            "balanced")
+                # Interactive governor for balanced performance
+                stellar_apply_param "interactive" "$cpu_path/cpufreq/scaling_governor"
+                # Slightly reduced max frequency for efficiency
+                max_freq=$(cat "$cpu_path/cpufreq/cpuinfo_max_freq" 2>/dev/null)
+                if [ -n "$max_freq" ]; then
+                    balanced_freq=$((max_freq * 90 / 100))
+                    stellar_apply_param "$balanced_freq" "$cpu_path/cpufreq/scaling_max_freq"
+                fi
+                ;;
+            "powersave")
+                # Conservative governor for battery saving
+                stellar_apply_param "conservative" "$cpu_path/cpufreq/scaling_governor"
+                # Reduced max frequency for power saving
+                max_freq=$(cat "$cpu_path/cpufreq/cpuinfo_max_freq" 2>/dev/null)
+                if [ -n "$max_freq" ]; then
+                    save_freq=$((max_freq * 70 / 100))
+                    stellar_apply_param "$save_freq" "$cpu_path/cpufreq/scaling_max_freq"
+                fi
+                ;;
+        esac
+        
+        # Set CPU-specific optimizations
+        stellar_apply_param "0" "$cpu_path/online" 2>/dev/null
+        stellar_apply_param "1" "$cpu_path/online" 2>/dev/null
+    done
+    
+    # MID cores (4-5): Cortex-A76 - balanced performance
+    for cpu in 4 5; do
+        cpu_path="/sys/devices/system/cpu/cpu$cpu"
+        [ ! -d "$cpu_path" ] && continue
+        
+        case "$mode" in
+            "performance")
+                stellar_apply_param "performance" "$cpu_path/cpufreq/scaling_governor"
+                max_freq=$(cat "$cpu_path/cpufreq/cpuinfo_max_freq" 2>/dev/null)
+                [ -n "$max_freq" ] && stellar_apply_param "$max_freq" "$cpu_path/cpufreq/scaling_max_freq"
+                ;;
+            "balanced")
+                stellar_apply_param "interactive" "$cpu_path/cpufreq/scaling_governor"
+                max_freq=$(cat "$cpu_path/cpufreq/cpuinfo_max_freq" 2>/dev/null)
+                if [ -n "$max_freq" ]; then
+                    balanced_freq=$((max_freq * 95 / 100))
+                    stellar_apply_param "$balanced_freq" "$cpu_path/cpufreq/scaling_max_freq"
+                fi
+                ;;
+            "powersave")
+                stellar_apply_param "conservative" "$cpu_path/cpufreq/scaling_governor"
+                max_freq=$(cat "$cpu_path/cpufreq/cpuinfo_max_freq" 2>/dev/null)
+                if [ -n "$max_freq" ]; then
+                    save_freq=$((max_freq * 75 / 100))
+                    stellar_apply_param "$save_freq" "$cpu_path/cpufreq/scaling_max_freq"
+                fi
+                ;;
+        esac
+    done
+    
+    # BIG cores (6-7): Cortex-X1 - peak performance
+    for cpu in 6 7; do
+        cpu_path="/sys/devices/system/cpu/cpu$cpu"
+        [ ! -d "$cpu_path" ] && continue
+        
+        case "$mode" in
+            "performance")
+                stellar_apply_param "performance" "$cpu_path/cpufreq/scaling_governor"
+                max_freq=$(cat "$cpu_path/cpufreq/cpuinfo_max_freq" 2>/dev/null)
+                [ -n "$max_freq" ] && stellar_apply_param "$max_freq" "$cpu_path/cpufreq/scaling_max_freq"
+                ;;
+            "balanced")
+                stellar_apply_param "interactive" "$cpu_path/cpufreq/scaling_governor"
+                max_freq=$(cat "$cpu_path/cpufreq/cpuinfo_max_freq" 2>/dev/null)
+                [ -n "$max_freq" ] && stellar_apply_param "$max_freq" "$cpu_path/cpufreq/scaling_max_freq"
+                ;;
+            "powersave")
+                stellar_apply_param "ondemand" "$cpu_path/cpufreq/scaling_governor"
+                max_freq=$(cat "$cpu_path/cpufreq/cpuinfo_max_freq" 2>/dev/null)
+                if [ -n "$max_freq" ]; then
+                    save_freq=$((max_freq * 80 / 100))
+                    stellar_apply_param "$save_freq" "$cpu_path/cpufreq/scaling_max_freq"
+                fi
+                ;;
+        esac
+    done
+}
+
+# Tensor G1 memory optimization for 8GB RAM
+optimize_tensor_memory() {
+    local mode="$1"
+    
+    case "$mode" in
+        "performance")
+            # Gaming profile: Maximize available memory
+            stellar_apply_param "0" "/proc/sys/vm/swappiness"
+            stellar_apply_param "100" "/proc/sys/vm/vfs_cache_pressure"
+            stellar_apply_param "50" "/proc/sys/vm/dirty_ratio"
+            stellar_apply_param "20" "/proc/sys/vm/dirty_background_ratio"
+            stellar_apply_param "0" "/proc/sys/vm/laptop_mode"
+            stellar_apply_param "1" "/proc/sys/vm/oom_kill_allocating_task"
+            
+            # ZRAM optimization for gaming
+            stellar_apply_param "lz4" "/sys/block/zram0/comp_algorithm" 2>/dev/null
+            stellar_apply_param "2147483648" "/sys/block/zram0/disksize" 2>/dev/null  # 2GB
+            ;;
+        "balanced")
+            # Balanced profile: Optimal performance/power ratio
+            stellar_apply_param "10" "/proc/sys/vm/swappiness"
+            stellar_apply_param "150" "/proc/sys/vm/vfs_cache_pressure"
+            stellar_apply_param "40" "/proc/sys/vm/dirty_ratio"
+            stellar_apply_param "15" "/proc/sys/vm/dirty_background_ratio"
+            stellar_apply_param "0" "/proc/sys/vm/laptop_mode"
+            
+            # Moderate ZRAM
+            stellar_apply_param "lz4" "/sys/block/zram0/comp_algorithm" 2>/dev/null
+            stellar_apply_param "1610612736" "/sys/block/zram0/disksize" 2>/dev/null  # 1.5GB
+            ;;
+        "powersave")
+            # Battery profile: Efficient power consumption
+            stellar_apply_param "20" "/proc/sys/vm/swappiness"
+            stellar_apply_param "200" "/proc/sys/vm/vfs_cache_pressure"
+            stellar_apply_param "30" "/proc/sys/vm/dirty_ratio"
+            stellar_apply_param "10" "/proc/sys/vm/dirty_background_ratio"
+            stellar_apply_param "5" "/proc/sys/vm/laptop_mode"
+            
+            # Conservative ZRAM
+            stellar_apply_param "lz4" "/sys/block/zram0/comp_algorithm" 2>/dev/null
+            stellar_apply_param "1073741824" "/sys/block/zram0/disksize" 2>/dev/null  # 1GB
+            ;;
+    esac
+    
+    # Common memory optimizations
+    stellar_apply_param "1" "/proc/sys/vm/overcommit_memory"
+    stellar_apply_param "50" "/proc/sys/vm/overcommit_ratio"
+    stellar_apply_param "3" "/proc/sys/vm/drop_caches"
+}
+
+# Tensor G1 I/O scheduler optimization
+optimize_tensor_io() {
+    local mode="$1"
+    
+    for block_dev in /sys/block/*/queue; do
+        dev_name=$(echo "$block_dev" | cut -d'/' -f4)
+        
+        # Skip virtual devices
+        case "$dev_name" in
+            loop* | ram* | zram*) continue ;;
+        esac
+        
+        case "$mode" in
+            "performance")
+                # Gaming profile: Low latency I/O
+                stellar_apply_param "mq-deadline" "$block_dev/scheduler" 2>/dev/null
+                stellar_apply_param "0" "$block_dev/iostats"
+                stellar_apply_param "0" "$block_dev/add_random"
+                stellar_apply_param "2" "$block_dev/rq_affinity"
+                stellar_apply_param "256" "$block_dev/nr_requests"
+                stellar_apply_param "1" "$block_dev/nomerges"
+                ;;
+            "balanced")
+                # Balanced profile: Moderate I/O performance
+                stellar_apply_param "cfq" "$block_dev/scheduler" 2>/dev/null
+                stellar_apply_param "1" "$block_dev/iostats"
+                stellar_apply_param "0" "$block_dev/add_random"
+                stellar_apply_param "1" "$block_dev/rq_affinity"
+                stellar_apply_param "128" "$block_dev/nr_requests"
+                stellar_apply_param "0" "$block_dev/nomerges"
+                ;;
+            "powersave")
+                # Battery profile: Energy efficient I/O
+                stellar_apply_param "cfq" "$block_dev/scheduler" 2>/dev/null
+                stellar_apply_param "1" "$block_dev/iostats"
+                stellar_apply_param "1" "$block_dev/add_random"
+                stellar_apply_param "1" "$block_dev/rq_affinity"
+                stellar_apply_param "64" "$block_dev/nr_requests"
+                stellar_apply_param "0" "$block_dev/nomerges"
+                ;;
+        esac
+    done
+}
+
+# Tensor G1 network optimization
+optimize_tensor_network() {
+    local mode="$1"
+    
+    case "$mode" in
+        "performance")
+            # Gaming profile: Low latency networking
+            stellar_apply_param "1" "/proc/sys/net/core/netdev_tstamp_prequeue"
+            stellar_apply_param "30" "/proc/sys/net/ipv4/tcp_fin_timeout"
+            stellar_apply_param "1" "/proc/sys/net/ipv4/tcp_tw_reuse"
+            stellar_apply_param "1" "/proc/sys/net/ipv4/tcp_fastopen"
+            stellar_apply_param "3" "/proc/sys/net/ipv4/tcp_fastopen_key"
+            stellar_apply_param "1" "/proc/sys/net/ipv4/tcp_low_latency"
+            stellar_apply_param "1048576" "/proc/sys/net/core/rmem_max"
+            stellar_apply_param "1048576" "/proc/sys/net/core/wmem_max"
+            ;;
+        "balanced"|"powersave")
+            # Restore default networking behavior
+            stellar_apply_param "0" "/proc/sys/net/core/netdev_tstamp_prequeue"
+            stellar_apply_param "60" "/proc/sys/net/ipv4/tcp_fin_timeout"
+            stellar_apply_param "2" "/proc/sys/net/ipv4/tcp_tw_reuse"
+            stellar_apply_param "1" "/proc/sys/net/ipv4/tcp_fastopen"
+            stellar_apply_param "212992" "/proc/sys/net/core/rmem_max"
+            stellar_apply_param "212992" "/proc/sys/net/core/wmem_max"
+            ;;
+    esac
+}
+
+# Main optimization function
+apply_tensor_optimizations() {
+    local mode="$1"
+    
+    echo "Applying Tensor G1 optimizations: $mode mode"
+    
+    # Apply tri-cluster CPU optimizations
+    optimize_tensor_cpu "$mode"
+    
+    # Apply memory optimizations for 8GB RAM
+    optimize_tensor_memory "$mode"
+    
+    # Apply I/O scheduler optimizations
+    optimize_tensor_io "$mode"
+    
+    # Apply network optimizations
+    optimize_tensor_network "$mode"
+    
+    # Call specialized optimizers
+    mali_g78_optimizer "$mode" 2>/dev/null
+    f2fs_optimizer "$mode" 2>/dev/null
+    thermal_tensor "$mode" 2>/dev/null
+    display_optimizer "$mode" 2>/dev/null
+    
+    sync
+}
+
+# Main execution
+case "$1" in
+    "performance"|"gaming")
+        apply_tensor_optimizations "performance"
+        ;;
+    "balanced"|"normal")
+        apply_tensor_optimizations "balanced"
+        ;;
+    "powersave"|"battery")
+        apply_tensor_optimizations "powersave"
+        ;;
+    *)
+        echo "Usage: tensor_optimizer [performance|balanced|powersave]"
+        echo "  performance - Maximum gaming performance"
+        echo "  balanced    - Optimal performance/power ratio"
+        echo "  powersave   - Maximum battery efficiency"
+        exit 1
+        ;;
+esac
