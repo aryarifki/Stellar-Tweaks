@@ -119,6 +119,7 @@ parse_soc_string() {
         *Exynos* | *exynos* | *samsung* | *universal* | *erd* | *s5e*) CHIPSET_ID=3 ;;
         *MediaTek* | *mt* | *MT*) CHIPSET_ID=1 ;;
         *Unisoc* | *unisoc* | *ums*) CHIPSET_ID=4 ;;
+        *Tensor* | *tensor* | *gs101* | *google* | *GS101* | *Google*) CHIPSET_ID=5 ;;
     esac
 }
 
@@ -133,6 +134,7 @@ identify_chipset() {
         2) ui_print "- Chipset identified as Snapdragon" ;;
         3) ui_print "- Chipset identified as Exynos" ;;
         4) ui_print "- Chipset identified as Unisoc" ;;
+        5) ui_print "- Chipset identified as Google Tensor" ;;
         *)
           ui_print "! Unrecognized SoC, applying universal settings."
           ui_print "! Thinking this wrong? Ask to maintainer."
@@ -158,7 +160,7 @@ extract_and_place_files() {
 
 handle_binaries() {
     print_status "Setting up binaries..."
-    local binaries="stellars profiles_mode vmt zeta_tweak"
+    local binaries="stellars profiles_mode vmt zeta_tweak tensor_detect tensor_optimizer mali_g78_optimizer f2fs_optimizer thermal_tensor display_optimizer tensor_g1"
     
     if $USE_SYMLINK; then
         print_status "Setting up symlinks for binaries..."

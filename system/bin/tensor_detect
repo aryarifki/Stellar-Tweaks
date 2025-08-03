@@ -1,0 +1,178 @@
+#!/system/bin/sh
+
+#
+# Copyright (C) 2024-2025 Kanao - Stellar Tweaks
+# Google Tensor G1 Detection and Identification
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+config_file="/data/adb/.config/stellar"
+
+# Function to apply parameters safely
+stellar_apply_param() {
+    [ ! -f "$2" ] && return 1
+    chmod 666 "$2" >/dev/null 2>&1
+    echo "$1" > "$2" 2>/dev/null
+    chmod 444 "$2" >/dev/null 2>&1
+}
+
+# Detect if device is Google Tensor G1
+is_tensor_g1() {
+    # Check various sources for Tensor G1 identification
+    local soc_info=""
+    
+    # Check hardware from /proc/cpuinfo
+    soc_info=$(grep -i "hardware" /proc/cpuinfo | head -1)
+    case "$soc_info" in
+        *tensor* | *gs101* | *google*) return 0 ;;
+    esac
+    
+    # Check device tree
+    [ -f /proc/device-tree/compatible ] && {
+        soc_info=$(cat /proc/device-tree/compatible 2>/dev/null)
+        case "$soc_info" in
+            *tensor* | *gs101* | *google*) return 0 ;;
+        esac
+    }
+    
+    # Check system properties
+    local props="ro.board.platform ro.soc.model ro.hardware ro.hardware.chipname"
+    for prop in $props; do
+        soc_info=$(getprop "$prop" 2>/dev/null)
+        case "$soc_info" in
+            *tensor* | *gs101* | *google* | *Tensor* | *GS101* | *Google*) return 0 ;;
+        esac
+    done
+    
+    # Check for Tensor-specific directories/files
+    [ -d /sys/devices/platform/acpm_mfd ] && return 0
+    [ -f /sys/devices/system/cpu/cpu6/topology/thread_siblings ] && return 0
+    [ -d /sys/devices/platform/cpufreq_mapper ] && return 0
+    
+    return 1
+}
+
+# Get detailed Tensor G1 hardware information
+get_tensor_info() {
+    echo "=== Google Tensor G1 Hardware Information ==="
+    
+    # CPU Architecture
+    echo "CPU Architecture: 8-core (4x Cortex-A55 + 2x Cortex-A76 + 2x Cortex-X1)"
+    echo "LITTLE cores (0-3): Cortex-A55"
+    echo "MID cores (4-5): Cortex-A76" 
+    echo "BIG cores (6-7): Cortex-X1"
+    
+    # GPU Information
+    echo "GPU: Mali-G78 MP20"
+    
+    # Check for Mali GPU paths
+    for mali_path in /sys/devices/platform/*.mali /sys/kernel/gpu; do
+        [ -d "$mali_path" ] && echo "Mali GPU path detected: $mali_path"
+    done
+    
+    # Memory Information
+    echo "RAM: $(grep MemTotal /proc/meminfo | awk '{print int($2/1024/1024)"GB"}')"
+    
+    # Storage Information  
+    echo "Storage: F2FS with LZ4 compression"
+    mount | grep f2fs | head -3
+    
+    # Display Information
+    echo "Display: 1080x2400, 60Hz/90Hz adaptive"
+    
+    # Kernel Information
+    echo "Kernel: $(uname -r)"
+    
+    # Thermal Zones
+    echo "Thermal Zones:"
+    for tz in /sys/class/thermal/thermal_zone*; do
+        [ -f "$tz/type" ] && echo "  $(cat "$tz/type"): $(cat "$tz/temp" 2>/dev/null || echo "N/A")°C"
+    done | head -10
+}
+
+# Verify Tensor G1 optimizable features
+verify_tensor_features() {
+    echo "=== Tensor G1 Feature Verification ==="
+    
+    # CPU frequency scaling
+    echo "CPU frequency scaling:"
+    for cpu in /sys/devices/system/cpu/cpu*/cpufreq; do
+        [ -d "$cpu" ] && {
+            cpu_num=$(echo "$cpu" | grep -o 'cpu[0-9]*' | grep -o '[0-9]*')
+            max_freq=$(cat "$cpu/cpuinfo_max_freq" 2>/dev/null || echo "N/A")
+            echo "  CPU$cpu_num: ${max_freq}Hz"
+        }
+    done
+    
+    # GPU frequency control
+    echo "GPU frequency control:"
+    for gpu_path in /sys/devices/platform/*.mali /sys/kernel/gpu; do
+        if [ -d "$gpu_path" ]; then
+            echo "  GPU path: $gpu_path"
+            [ -f "$gpu_path/gpu_available_frequencies" ] && echo "  Available freqs: $(cat "$gpu_path/gpu_available_frequencies")"
+            [ -f "$gpu_path/gpu_freq_table" ] && echo "  Freq table: $(cat "$gpu_path/gpu_freq_table")"
+        fi
+    done
+    
+    # F2FS filesystems
+    echo "F2FS filesystems:"
+    mount | grep f2fs | while read line; do
+        echo "  $line"
+    done
+    
+    # Thermal control
+    echo "Thermal control: $(ls /sys/class/thermal/thermal_zone* | wc -l) thermal zones"
+    
+    # Display refresh rate
+    echo "Display refresh rate control:"
+    for display_path in /sys/class/drm/card*/device; do
+        [ -d "$display_path" ] && echo "  Display device: $display_path"
+    done
+}
+
+# Main execution
+case "$1" in
+    "check")
+        if is_tensor_g1; then
+            echo "Google Tensor G1 detected"
+            exit 0
+        else
+            echo "Not a Google Tensor G1 device"
+            exit 1
+        fi
+        ;;
+    "info")
+        if is_tensor_g1; then
+            get_tensor_info
+        else
+            echo "Error: Not a Google Tensor G1 device"
+            exit 1
+        fi
+        ;;
+    "verify")
+        if is_tensor_g1; then
+            verify_tensor_features
+        else
+            echo "Error: Not a Google Tensor G1 device"
+            exit 1
+        fi
+        ;;
+    *)
+        echo "Usage: tensor_detect [check|info|verify]"
+        echo "  check  - Check if device is Tensor G1"
+        echo "  info   - Show Tensor G1 hardware information"
+        echo "  verify - Verify optimizable features"
+        exit 1
+        ;;
+esac

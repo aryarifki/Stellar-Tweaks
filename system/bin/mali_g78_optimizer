@@ -1,0 +1,289 @@
+#!/system/bin/sh
+
+#
+# Copyright (C) 2024-2025 Kanao - Stellar Tweaks
+# Mali-G78 MP20 GPU Optimizer for Google Tensor G1
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+config_file="/data/adb/.config/stellar"
+
+# Function to apply parameters safely
+stellar_apply_param() {
+    [ ! -f "$2" ] && return 1
+    chmod 666 "$2" >/dev/null 2>&1
+    echo "$1" > "$2" 2>/dev/null
+    chmod 444 "$2" >/dev/null 2>&1
+}
+
+# Function to get highest frequency from available frequencies
+stellar_get_apex_hz() {
+    [ ! -f "$1" ] && return 1
+    cat "$1" | tr ' ' '\n' | sort -nr | head -1
+}
+
+# Function to get median frequency from available frequencies  
+stellar_get_median_hz() {
+    [ ! -f "$1" ] && return 1
+    local freqs=$(cat "$1" | tr ' ' '\n' | sort -n)
+    local count=$(echo "$freqs" | wc -l)
+    local median_pos=$(((count + 1) / 2))
+    echo "$freqs" | sed -n "${median_pos}p"
+}
+
+# Function to get lowest frequency from available frequencies
+stellar_get_nadir_hz() {
+    [ ! -f "$1" ] && return 1
+    cat "$1" | tr ' ' '\n' | sort -n | head -1
+}
+
+# Mali-G78 MP20 performance profile for gaming
+mali_g78_performance() {
+    echo "Applying Mali-G78 MP20 performance profile..."
+    
+    # Find Mali GPU paths specific to Tensor G1
+    for mali_path in /sys/devices/platform/*.mali /sys/kernel/gpu; do
+        [ ! -d "$mali_path" ] && continue
+        
+        echo "Configuring Mali GPU at: $mali_path"
+        
+        # Set maximum performance governor
+        stellar_apply_param "performance" "$mali_path/power_policy"
+        stellar_apply_param "always_on" "$mali_path/power_model/power_management"
+        
+        # Get available frequencies
+        freq_file=""
+        if [ -f "$mali_path/gpu_available_frequencies" ]; then
+            freq_file="$mali_path/gpu_available_frequencies"
+        elif [ -f "$mali_path/gpu_freq_table" ]; then
+            freq_file="$mali_path/gpu_freq_table"
+        elif [ -f "$mali_path/available_frequencies" ]; then
+            freq_file="$mali_path/available_frequencies"
+        fi
+        
+        if [ -n "$freq_file" ]; then
+            # Get maximum frequency for peak performance
+            max_freq=$(stellar_get_apex_hz "$freq_file")
+            min_freq=$(stellar_get_apex_hz "$freq_file")  # Set min = max for sustained performance
+            
+            echo "Setting GPU frequencies: min=$min_freq, max=$max_freq"
+            
+            # Apply frequency settings
+            stellar_apply_param "$min_freq" "$mali_path/gpu_min_clock"
+            stellar_apply_param "$max_freq" "$mali_path/gpu_max_clock"
+            stellar_apply_param "$min_freq" "$mali_path/min_freq"
+            stellar_apply_param "$max_freq" "$mali_path/max_freq"
+        fi
+        
+        # Disable thermal management during gaming
+        stellar_apply_param "0" "$mali_path/tmu"
+        stellar_apply_param "disabled" "$mali_path/thermal_management"
+        
+        # Set aggressive voltage and power settings
+        stellar_apply_param "0" "$mali_path/dvfs_governor"
+        stellar_apply_param "1" "$mali_path/debug_level"
+        stellar_apply_param "always_on" "$mali_path/core_availability_policy"
+        
+        # Maximize shader core utilization for MP20
+        stellar_apply_param "20" "$mali_path/num_cores"
+        stellar_apply_param "1" "$mali_path/core_stack_power"
+        
+        # Disable power gating for sustained performance
+        stellar_apply_param "0" "$mali_path/power_gate_enable"
+        stellar_apply_param "1" "$mali_path/always_on"
+        
+        # Set texture compression and memory optimizations
+        stellar_apply_param "1" "$mali_path/texture_compression"
+        stellar_apply_param "0" "$mali_path/memory_throttling"
+        stellar_apply_param "performance" "$mali_path/memory_governor"
+        
+        # GPU memory bandwidth optimization
+        stellar_apply_param "1" "$mali_path/memory_group_manager/ptm"
+        stellar_apply_param "0" "$mali_path/arbitration_mode"
+    done
+    
+    # Additional Mali-specific optimizations for Tensor G1
+    stellar_apply_param "1" "/sys/kernel/debug/mali0/always_on"
+    stellar_apply_param "performance" "/sys/module/mali_kbase/parameters/power_policy"
+    stellar_apply_param "0" "/sys/module/mali_kbase/parameters/power_down_delay_ms"
+}
+
+# Mali-G78 MP20 balanced profile
+mali_g78_balanced() {
+    echo "Applying Mali-G78 MP20 balanced profile..."
+    
+    for mali_path in /sys/devices/platform/*.mali /sys/kernel/gpu; do
+        [ ! -d "$mali_path" ] && continue
+        
+        echo "Configuring Mali GPU at: $mali_path"
+        
+        # Set interactive governor for balanced performance
+        stellar_apply_param "interactive" "$mali_path/power_policy"
+        stellar_apply_param "coarse_demand" "$mali_path/power_model/power_management"
+        
+        # Get available frequencies
+        freq_file=""
+        if [ -f "$mali_path/gpu_available_frequencies" ]; then
+            freq_file="$mali_path/gpu_available_frequencies"
+        elif [ -f "$mali_path/gpu_freq_table" ]; then
+            freq_file="$mali_path/gpu_freq_table"
+        elif [ -f "$mali_path/available_frequencies" ]; then
+            freq_file="$mali_path/available_frequencies"
+        fi
+        
+        if [ -n "$freq_file" ]; then
+            # Use median frequency for balanced performance
+            max_freq=$(stellar_get_apex_hz "$freq_file")
+            min_freq=$(stellar_get_nadir_hz "$freq_file")
+            median_freq=$(stellar_get_median_hz "$freq_file")
+            
+            echo "Setting GPU frequencies: min=$min_freq, max=$max_freq"
+            
+            # Apply balanced frequency settings  
+            stellar_apply_param "$min_freq" "$mali_path/gpu_min_clock"
+            stellar_apply_param "$max_freq" "$mali_path/gpu_max_clock"
+            stellar_apply_param "$min_freq" "$mali_path/min_freq"
+            stellar_apply_param "$max_freq" "$mali_path/max_freq"
+        fi
+        
+        # Enable thermal management
+        stellar_apply_param "1" "$mali_path/tmu"
+        stellar_apply_param "enabled" "$mali_path/thermal_management"
+        
+        # Balanced voltage and power settings
+        stellar_apply_param "1" "$mali_path/dvfs_governor"
+        stellar_apply_param "0" "$mali_path/debug_level"
+        stellar_apply_param "on_demand" "$mali_path/core_availability_policy"
+        
+        # Dynamic core management
+        stellar_apply_param "auto" "$mali_path/num_cores"
+        stellar_apply_param "0" "$mali_path/core_stack_power"
+        
+        # Enable power gating for efficiency
+        stellar_apply_param "1" "$mali_path/power_gate_enable"
+        stellar_apply_param "0" "$mali_path/always_on"
+        
+        # Balanced memory settings
+        stellar_apply_param "1" "$mali_path/texture_compression"
+        stellar_apply_param "1" "$mali_path/memory_throttling"
+        stellar_apply_param "interactive" "$mali_path/memory_governor"
+    done
+    
+    # Restore default Mali settings
+    stellar_apply_param "0" "/sys/kernel/debug/mali0/always_on"
+    stellar_apply_param "adaptive" "/sys/module/mali_kbase/parameters/power_policy"
+    stellar_apply_param "3000" "/sys/module/mali_kbase/parameters/power_down_delay_ms"
+}
+
+# Mali-G78 MP20 power saving profile
+mali_g78_powersave() {
+    echo "Applying Mali-G78 MP20 power saving profile..."
+    
+    for mali_path in /sys/devices/platform/*.mali /sys/kernel/gpu; do
+        [ ! -d "$mali_path" ] && continue
+        
+        echo "Configuring Mali GPU at: $mali_path"
+        
+        # Set power saving governor
+        stellar_apply_param "powersave" "$mali_path/power_policy"
+        stellar_apply_param "fine_demand" "$mali_path/power_model/power_management"
+        
+        # Get available frequencies
+        freq_file=""
+        if [ -f "$mali_path/gpu_available_frequencies" ]; then
+            freq_file="$mali_path/gpu_available_frequencies"
+        elif [ -f "$mali_path/gpu_freq_table" ]; then
+            freq_file="$mali_path/gpu_freq_table"
+        elif [ -f "$mali_path/available_frequencies" ]; then
+            freq_file="$mali_path/available_frequencies"
+        fi
+        
+        if [ -n "$freq_file" ]; then
+            # Use lower frequencies for power saving
+            max_freq=$(stellar_get_median_hz "$freq_file")
+            min_freq=$(stellar_get_nadir_hz "$freq_file")
+            
+            echo "Setting GPU frequencies: min=$min_freq, max=$max_freq"
+            
+            # Apply power-efficient frequency settings
+            stellar_apply_param "$min_freq" "$mali_path/gpu_min_clock"
+            stellar_apply_param "$max_freq" "$mali_path/gpu_max_clock"
+            stellar_apply_param "$min_freq" "$mali_path/min_freq"
+            stellar_apply_param "$max_freq" "$mali_path/max_freq"
+        fi
+        
+        # Enable aggressive thermal management
+        stellar_apply_param "1" "$mali_path/tmu"
+        stellar_apply_param "enabled" "$mali_path/thermal_management"
+        
+        # Conservative voltage and power settings
+        stellar_apply_param "2" "$mali_path/dvfs_governor"
+        stellar_apply_param "0" "$mali_path/debug_level"
+        stellar_apply_param "conservative" "$mali_path/core_availability_policy"
+        
+        # Minimal core utilization
+        stellar_apply_param "4" "$mali_path/num_cores"  # Use only 4 cores out of 20
+        stellar_apply_param "0" "$mali_path/core_stack_power"
+        
+        # Enable aggressive power gating
+        stellar_apply_param "1" "$mali_path/power_gate_enable"
+        stellar_apply_param "0" "$mali_path/always_on"
+        
+        # Power-efficient memory settings
+        stellar_apply_param "1" "$mali_path/texture_compression"
+        stellar_apply_param "2" "$mali_path/memory_throttling"
+        stellar_apply_param "powersave" "$mali_path/memory_governor"
+        
+        # Enable memory bandwidth throttling
+        stellar_apply_param "1" "$mali_path/memory_group_manager/ptm"
+        stellar_apply_param "1" "$mali_path/arbitration_mode"
+    done
+    
+    # Power saving Mali module parameters
+    stellar_apply_param "0" "/sys/kernel/debug/mali0/always_on"
+    stellar_apply_param "powersave" "/sys/module/mali_kbase/parameters/power_policy"
+    stellar_apply_param "10000" "/sys/module/mali_kbase/parameters/power_down_delay_ms"
+}
+
+# Check DVFS limiting
+check_dvfs_limit() {
+    local dvfs_gpu_file="$config_file/dvfs_gpu"
+    if [ -f "$dvfs_gpu_file" ] && [ "$(cat "$dvfs_gpu_file")" -eq 1 ]; then
+        echo "DVFS GPU limiting is enabled (80% max frequency)"
+        return 0
+    fi
+    return 1
+}
+
+# Main execution
+case "$1" in
+    "performance"|"gaming")
+        mali_g78_performance
+        ;;
+    "balanced"|"normal")
+        mali_g78_balanced
+        ;;
+    "powersave"|"battery")
+        mali_g78_powersave
+        ;;
+    *)
+        echo "Usage: mali_g78_optimizer [performance|balanced|powersave]"
+        echo "  performance - Maximum gaming performance with thermal management disabled"
+        echo "  balanced    - Optimal performance/power ratio with thermal management"
+        echo "  powersave   - Maximum battery efficiency with aggressive power gating"
+        exit 1
+        ;;
+esac
+
+echo "Mali-G78 MP20 optimization completed for $1 mode"

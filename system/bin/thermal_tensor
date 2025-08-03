@@ -1,0 +1,345 @@
+#!/system/bin/sh
+
+#
+# Copyright (C) 2024-2025 Kanao - Stellar Tweaks
+# Thermal Management for Google Tensor G1
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+config_file="/data/adb/.config/stellar"
+
+# Function to apply parameters safely
+stellar_apply_param() {
+    [ ! -f "$2" ] && return 1
+    chmod 666 "$2" >/dev/null 2>&1
+    echo "$1" > "$2" 2>/dev/null
+    chmod 444 "$2" >/dev/null 2>&1
+}
+
+# Get all thermal zones
+get_thermal_zones() {
+    find /sys/class/thermal -name "thermal_zone*" -type d | sort
+}
+
+# Get thermal zone type
+get_thermal_type() {
+    local zone="$1"
+    [ -f "$zone/type" ] && cat "$zone/type" 2>/dev/null || echo "unknown"
+}
+
+# Get thermal zone temperature
+get_thermal_temp() {
+    local zone="$1"
+    if [ -f "$zone/temp" ]; then
+        local temp=$(cat "$zone/temp" 2>/dev/null)
+        [ -n "$temp" ] && echo "$((temp / 1000))" || echo "N/A"
+    else
+        echo "N/A"
+    fi
+}
+
+# Gaming thermal profile - prioritize performance
+thermal_gaming() {
+    echo "Applying gaming thermal profile..."
+    
+    # Get all thermal zones
+    local thermal_zones=$(get_thermal_zones)
+    
+    for zone in $thermal_zones; do
+        local zone_type=$(get_thermal_type "$zone")
+        local zone_num=$(basename "$zone" | grep -o '[0-9]*')
+        
+        echo "Configuring thermal zone $zone_num ($zone_type)"
+        
+        case "$zone_type" in
+            *cpu* | *CPU*)
+                # CPU thermal zones - allow higher temperatures for gaming
+                stellar_apply_param "95000" "$zone/trip_point_0_temp"    # 95°C critical
+                stellar_apply_param "90000" "$zone/trip_point_1_temp"    # 90°C hot
+                stellar_apply_param "85000" "$zone/trip_point_2_temp"    # 85°C warm
+                stellar_apply_param "passive" "$zone/trip_point_0_type"
+                stellar_apply_param "passive" "$zone/trip_point_1_type"
+                stellar_apply_param "active" "$zone/trip_point_2_type"
+                ;;
+            *gpu* | *GPU* | *mali*)
+                # GPU thermal zones - prioritize sustained performance
+                stellar_apply_param "100000" "$zone/trip_point_0_temp"   # 100°C critical  
+                stellar_apply_param "95000" "$zone/trip_point_1_temp"    # 95°C hot
+                stellar_apply_param "90000" "$zone/trip_point_2_temp"    # 90°C warm
+                stellar_apply_param "passive" "$zone/trip_point_0_type"
+                stellar_apply_param "passive" "$zone/trip_point_1_type"
+                stellar_apply_param "active" "$zone/trip_point_2_type"
+                ;;
+            *battery* | *BATTERY*)
+                # Battery thermal - moderate limits for safety
+                stellar_apply_param "60000" "$zone/trip_point_0_temp"    # 60°C critical
+                stellar_apply_param "55000" "$zone/trip_point_1_temp"    # 55°C hot
+                stellar_apply_param "50000" "$zone/trip_point_2_temp"    # 50°C warm
+                ;;
+            *skin* | *SKIN* | *board*)
+                # Skin/board thermal - higher limits for gaming
+                stellar_apply_param "50000" "$zone/trip_point_0_temp"    # 50°C critical
+                stellar_apply_param "45000" "$zone/trip_point_1_temp"    # 45°C hot
+                stellar_apply_param "40000" "$zone/trip_point_2_temp"    # 40°C warm
+                ;;
+            *)
+                # Generic thermal zones - moderate gaming settings
+                stellar_apply_param "85000" "$zone/trip_point_0_temp"
+                stellar_apply_param "80000" "$zone/trip_point_1_temp"
+                stellar_apply_param "75000" "$zone/trip_point_2_temp"
+                ;;
+        esac
+        
+        # Disable thermal throttling for gaming performance
+        stellar_apply_param "disabled" "$zone/mode"
+        stellar_apply_param "0" "$zone/passive_delay"
+        stellar_apply_param "0" "$zone/polling_delay"
+        
+        # Aggressive cooling policy
+        stellar_apply_param "aggressive" "$zone/policy"
+        for cooling_device in "$zone"/cdev*; do
+            [ -d "$cooling_device" ] && stellar_apply_param "0" "$cooling_device/max_state"
+        done
+    done
+    
+    # Tensor G1 specific thermal optimizations
+    stellar_apply_param "0" "/sys/devices/virtual/thermal/thermal_message/sconfig"
+    stellar_apply_param "disabled" "/sys/module/msm_thermal/parameters/enabled"
+    stellar_apply_param "0" "/sys/class/thermal/thermal_message/sconfig"
+    
+    # Disable CPU thermal throttling for sustained gaming performance
+    for cpu in /sys/devices/system/cpu/cpu*/thermal_throttle; do
+        [ -d "$cpu" ] && {
+            stellar_apply_param "0" "$cpu/core_throttle_count"
+            stellar_apply_param "0" "$cpu/package_throttle_count"
+        }
+    done
+    
+    echo "Gaming thermal profile applied - thermal protection reduced for maximum performance"
+}
+
+# Balanced thermal profile
+thermal_balanced() {
+    echo "Applying balanced thermal profile..."
+    
+    local thermal_zones=$(get_thermal_zones)
+    
+    for zone in $thermal_zones; do
+        local zone_type=$(get_thermal_type "$zone")
+        local zone_num=$(basename "$zone" | grep -o '[0-9]*')
+        
+        echo "Configuring thermal zone $zone_num ($zone_type)"
+        
+        case "$zone_type" in
+            *cpu* | *CPU*)
+                # CPU thermal zones - balanced temperature limits
+                stellar_apply_param "85000" "$zone/trip_point_0_temp"    # 85°C critical
+                stellar_apply_param "80000" "$zone/trip_point_1_temp"    # 80°C hot
+                stellar_apply_param "75000" "$zone/trip_point_2_temp"    # 75°C warm
+                stellar_apply_param "critical" "$zone/trip_point_0_type"
+                stellar_apply_param "passive" "$zone/trip_point_1_type"
+                stellar_apply_param "active" "$zone/trip_point_2_type"
+                ;;
+            *gpu* | *GPU* | *mali*)
+                # GPU thermal zones - balanced performance/thermal
+                stellar_apply_param "90000" "$zone/trip_point_0_temp"    # 90°C critical
+                stellar_apply_param "85000" "$zone/trip_point_1_temp"    # 85°C hot
+                stellar_apply_param "80000" "$zone/trip_point_2_temp"    # 80°C warm
+                stellar_apply_param "critical" "$zone/trip_point_0_type"
+                stellar_apply_param "passive" "$zone/trip_point_1_type"
+                stellar_apply_param "active" "$zone/trip_point_2_type"
+                ;;
+            *battery* | *BATTERY*)
+                # Battery thermal - safe limits
+                stellar_apply_param "50000" "$zone/trip_point_0_temp"    # 50°C critical
+                stellar_apply_param "45000" "$zone/trip_point_1_temp"    # 45°C hot
+                stellar_apply_param "40000" "$zone/trip_point_2_temp"    # 40°C warm
+                ;;
+            *skin* | *SKIN* | *board*)
+                # Skin/board thermal - comfort limits
+                stellar_apply_param "42000" "$zone/trip_point_0_temp"    # 42°C critical
+                stellar_apply_param "38000" "$zone/trip_point_1_temp"    # 38°C hot
+                stellar_apply_param "35000" "$zone/trip_point_2_temp"    # 35°C warm
+                ;;
+            *)
+                # Generic thermal zones - balanced settings
+                stellar_apply_param "75000" "$zone/trip_point_0_temp"
+                stellar_apply_param "70000" "$zone/trip_point_1_temp"
+                stellar_apply_param "65000" "$zone/trip_point_2_temp"
+                ;;
+        esac
+        
+        # Enable thermal management with moderate delays
+        stellar_apply_param "enabled" "$zone/mode"
+        stellar_apply_param "1000" "$zone/passive_delay"    # 1s passive delay
+        stellar_apply_param "2000" "$zone/polling_delay"    # 2s polling delay
+        
+        # Balanced cooling policy
+        stellar_apply_param "balanced" "$zone/policy"
+    done
+    
+    # Enable Tensor G1 thermal management
+    stellar_apply_param "1" "/sys/devices/virtual/thermal/thermal_message/sconfig"
+    stellar_apply_param "enabled" "/sys/module/msm_thermal/parameters/enabled"
+    stellar_apply_param "1" "/sys/class/thermal/thermal_message/sconfig"
+    
+    echo "Balanced thermal profile applied - optimal performance/thermal balance"
+}
+
+# Power saving thermal profile
+thermal_powersave() {
+    echo "Applying power saving thermal profile..."
+    
+    local thermal_zones=$(get_thermal_zones)
+    
+    for zone in $thermal_zones; do
+        local zone_type=$(get_thermal_type "$zone")
+        local zone_num=$(basename "$zone" | grep -o '[0-9]*')
+        
+        echo "Configuring thermal zone $zone_num ($zone_type)"
+        
+        case "$zone_type" in
+            *cpu* | *CPU*)
+                # CPU thermal zones - conservative temperature limits
+                stellar_apply_param "75000" "$zone/trip_point_0_temp"    # 75°C critical
+                stellar_apply_param "70000" "$zone/trip_point_1_temp"    # 70°C hot
+                stellar_apply_param "65000" "$zone/trip_point_2_temp"    # 65°C warm
+                stellar_apply_param "critical" "$zone/trip_point_0_type"
+                stellar_apply_param "passive" "$zone/trip_point_1_type"
+                stellar_apply_param "active" "$zone/trip_point_2_type"
+                ;;
+            *gpu* | *GPU* | *mali*)
+                # GPU thermal zones - conservative for battery life
+                stellar_apply_param "80000" "$zone/trip_point_0_temp"    # 80°C critical
+                stellar_apply_param "75000" "$zone/trip_point_1_temp"    # 75°C hot
+                stellar_apply_param "70000" "$zone/trip_point_2_temp"    # 70°C warm
+                stellar_apply_param "critical" "$zone/trip_point_0_type"
+                stellar_apply_param "passive" "$zone/trip_point_1_type"
+                stellar_apply_param "active" "$zone/trip_point_2_type"
+                ;;
+            *battery* | *BATTERY*)
+                # Battery thermal - very conservative for longevity
+                stellar_apply_param "40000" "$zone/trip_point_0_temp"    # 40°C critical
+                stellar_apply_param "35000" "$zone/trip_point_1_temp"    # 35°C hot
+                stellar_apply_param "30000" "$zone/trip_point_2_temp"    # 30°C warm
+                ;;
+            *skin* | *SKIN* | *board*)
+                # Skin/board thermal - very conservative for comfort
+                stellar_apply_param "35000" "$zone/trip_point_0_temp"    # 35°C critical
+                stellar_apply_param "32000" "$zone/trip_point_1_temp"    # 32°C hot
+                stellar_apply_param "30000" "$zone/trip_point_2_temp"    # 30°C warm
+                ;;
+            *)
+                # Generic thermal zones - conservative settings
+                stellar_apply_param "65000" "$zone/trip_point_0_temp"
+                stellar_apply_param "60000" "$zone/trip_point_1_temp"
+                stellar_apply_param "55000" "$zone/trip_point_2_temp"
+                ;;
+        esac
+        
+        # Enable aggressive thermal management
+        stellar_apply_param "enabled" "$zone/mode"
+        stellar_apply_param "500" "$zone/passive_delay"     # 0.5s passive delay
+        stellar_apply_param "1000" "$zone/polling_delay"    # 1s polling delay
+        
+        # Conservative cooling policy
+        stellar_apply_param "conservative" "$zone/policy"
+        for cooling_device in "$zone"/cdev*; do
+            [ -d "$cooling_device" ] && {
+                local max_state=$(cat "$cooling_device/max_state" 2>/dev/null || echo "10")
+                stellar_apply_param "$max_state" "$cooling_device/cur_state"
+            }
+        done
+    done
+    
+    # Enable aggressive Tensor G1 thermal management
+    stellar_apply_param "2" "/sys/devices/virtual/thermal/thermal_message/sconfig"
+    stellar_apply_param "Y" "/sys/module/msm_thermal/parameters/enabled"
+    stellar_apply_param "2" "/sys/class/thermal/thermal_message/sconfig"
+    
+    echo "Power saving thermal profile applied - aggressive thermal protection for battery life"
+}
+
+# Show thermal status
+thermal_status() {
+    echo "=== Tensor G1 Thermal Status ==="
+    
+    local thermal_zones=$(get_thermal_zones)
+    
+    echo "Current thermal zone temperatures:"
+    for zone in $thermal_zones; do
+        local zone_type=$(get_thermal_type "$zone")
+        local zone_temp=$(get_thermal_temp "$zone")
+        local zone_num=$(basename "$zone" | grep -o '[0-9]*')
+        
+        printf "  Zone %s (%s): %s°C\n" "$zone_num" "$zone_type" "$zone_temp"
+    done
+    
+    echo ""
+    echo "Thermal trip points:"
+    for zone in $thermal_zones; do
+        local zone_type=$(get_thermal_type "$zone")
+        local zone_num=$(basename "$zone" | grep -o '[0-9]*')
+        
+        echo "  Zone $zone_num ($zone_type):"
+        for i in 0 1 2; do
+            if [ -f "$zone/trip_point_${i}_temp" ]; then
+                local trip_temp=$(cat "$zone/trip_point_${i}_temp" 2>/dev/null)
+                local trip_type=$(cat "$zone/trip_point_${i}_type" 2>/dev/null)
+                [ -n "$trip_temp" ] && echo "    Trip $i: $((trip_temp / 1000))°C ($trip_type)"
+            fi
+        done
+    done
+}
+
+# Monitor thermal continuously
+thermal_monitor() {
+    echo "=== Tensor G1 Thermal Monitor (Press Ctrl+C to stop) ==="
+    
+    while true; do
+        clear
+        thermal_status
+        echo ""
+        echo "$(date): Monitoring thermal zones..."
+        sleep 5
+    done
+}
+
+# Main execution
+case "$1" in
+    "performance"|"gaming")
+        thermal_gaming
+        ;;
+    "balanced"|"normal")
+        thermal_balanced
+        ;;
+    "powersave"|"battery")
+        thermal_powersave
+        ;;
+    "status"|"info")
+        thermal_status
+        ;;
+    "monitor")
+        thermal_monitor
+        ;;
+    *)
+        echo "Usage: thermal_tensor [performance|balanced|powersave|status|monitor]"
+        echo "  performance - Gaming thermal profile (higher temperature limits)"
+        echo "  balanced    - Balanced thermal management"
+        echo "  powersave   - Aggressive thermal protection for battery life"
+        echo "  status      - Show current thermal zone temperatures"
+        echo "  monitor     - Continuously monitor thermal zones"
+        exit 1
+        ;;
+esac

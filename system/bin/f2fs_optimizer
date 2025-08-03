@@ -1,0 +1,298 @@
+#!/system/bin/sh
+
+#
+# Copyright (C) 2024-2025 Kanao - Stellar Tweaks
+# F2FS Advanced Optimizer for Google Tensor G1
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+config_file="/data/adb/.config/stellar"
+
+# Function to apply parameters safely
+stellar_apply_param() {
+    [ ! -f "$2" ] && return 1
+    chmod 666 "$2" >/dev/null 2>&1
+    echo "$1" > "$2" 2>/dev/null
+    chmod 444 "$2" >/dev/null 2>&1
+}
+
+# Get F2FS mount points
+get_f2fs_mounts() {
+    mount | grep "type f2fs" | awk '{print $3}'
+}
+
+# Get F2FS device paths
+get_f2fs_devices() {
+    mount | grep "type f2fs" | awk '{print $1}'
+}
+
+# F2FS performance optimization for gaming
+f2fs_performance() {
+    echo "Applying F2FS performance optimizations for gaming..."
+    
+    # Get all F2FS mount points
+    local f2fs_mounts=$(get_f2fs_mounts)
+    
+    if [ -z "$f2fs_mounts" ]; then
+        echo "No F2FS filesystems found"
+        return 1
+    fi
+    
+    echo "Found F2FS mounts: $f2fs_mounts"
+    
+    # Apply performance settings to each F2FS filesystem
+    for mount_point in $f2fs_mounts; do
+        echo "Optimizing F2FS at: $mount_point"
+        
+        # Find corresponding sysfs entries
+        local device=$(mount | grep "$mount_point" | awk '{print $1}' | sed 's/[0-9]*$//')
+        local device_name=$(basename "$device")
+        
+        # F2FS specific optimizations for gaming
+        for f2fs_path in /sys/fs/f2fs/*/; do
+            [ ! -d "$f2fs_path" ] && continue
+            
+            echo "Configuring F2FS at: $f2fs_path"
+            
+            # Garbage Collection optimizations for sustained performance
+            stellar_apply_param "2" "$f2fs_path/gc_urgent"           # Urgent GC for performance
+            stellar_apply_param "500" "$f2fs_path/gc_urgent_sleep_time"  # Faster GC cycles
+            stellar_apply_param "20" "$f2fs_path/max_victim_search"   # Faster victim selection
+            stellar_apply_param "32" "$f2fs_path/batched_trim_sections"  # Larger trim batches
+            
+            # LZ4 compression optimizations for 8GB RAM
+            stellar_apply_param "lz4" "$f2fs_path/compress_algorithm"  # Use LZ4 compression
+            stellar_apply_param "4" "$f2fs_path/compress_log_size"     # 16KB compression units
+            stellar_apply_param "90" "$f2fs_path/compress_percent"     # Aggressive compression
+            stellar_apply_param "1" "$f2fs_path/compress_mode"        # Enable compression
+            
+            # Memory utilization optimizations for 8GB RAM
+            stellar_apply_param "8" "$f2fs_path/ram_thresh"           # 8GB RAM threshold
+            stellar_apply_param "1024" "$f2fs_path/max_extent_cache"  # Large extent cache
+            stellar_apply_param "64" "$f2fs_path/extent_cache_shrink_ratio"  # Controlled shrinking
+            
+            # Write performance optimizations
+            stellar_apply_param "1" "$f2fs_path/iostat_enable"        # Enable I/O statistics
+            stellar_apply_param "4096" "$f2fs_path/min_seq_blocks"    # Large sequential writes
+            stellar_apply_param "1" "$f2fs_path/seq_file_ra"          # Sequential read-ahead
+            
+            # Disable power-saving features for performance
+            stellar_apply_param "0" "$f2fs_path/idle_interval"        # Disable idle optimization
+            stellar_apply_param "0" "$f2fs_path/discard_granularity"  # Immediate discard
+            stellar_apply_param "1" "$f2fs_path/discard_urgent_util"  # Urgent discard
+            
+            # Node and segment optimizations
+            stellar_apply_param "100" "$f2fs_path/node_io_flag"       # Optimize node I/O
+            stellar_apply_param "100" "$f2fs_path/data_io_flag"       # Optimize data I/O
+            stellar_apply_param "6" "$f2fs_path/dirty_nats_ratio"     # Aggressive NAT flushing
+            
+            # Performance-oriented mount options (applied via remount if needed)
+            stellar_apply_param "0" "$f2fs_path/cp_interval"          # Faster checkpoints
+            stellar_apply_param "60" "$f2fs_path/gc_min_sleep_time"   # Faster GC wakeup
+            stellar_apply_param "300" "$f2fs_path/gc_max_sleep_time"  # Controlled GC sleep
+        done
+    done
+    
+    # Global F2FS optimizations for gaming
+    stellar_apply_param "1" "/proc/sys/fs/f2fs/iostat_period_ms"      # 1ms I/O stats
+    
+    # Trigger immediate garbage collection for clean state
+    for f2fs_path in /sys/fs/f2fs/*/; do
+        [ -f "$f2fs_path/gc_urgent" ] && echo "1" > "$f2fs_path/gc_urgent" 2>/dev/null
+    done
+    
+    echo "F2FS performance optimization completed"
+}
+
+# F2FS balanced optimization
+f2fs_balanced() {
+    echo "Applying F2FS balanced optimizations..."
+    
+    local f2fs_mounts=$(get_f2fs_mounts)
+    
+    if [ -z "$f2fs_mounts" ]; then
+        echo "No F2FS filesystems found"
+        return 1
+    fi
+    
+    for f2fs_path in /sys/fs/f2fs/*/; do
+        [ ! -d "$f2fs_path" ] && continue
+        
+        echo "Configuring F2FS at: $f2fs_path"
+        
+        # Balanced Garbage Collection
+        stellar_apply_param "1" "$f2fs_path/gc_urgent"           # Moderate GC urgency
+        stellar_apply_param "1000" "$f2fs_path/gc_urgent_sleep_time"  # Balanced GC cycles
+        stellar_apply_param "16" "$f2fs_path/max_victim_search"   # Moderate victim selection
+        stellar_apply_param "16" "$f2fs_path/batched_trim_sections"  # Moderate trim batches
+        
+        # LZ4 compression for efficiency
+        stellar_apply_param "lz4" "$f2fs_path/compress_algorithm"
+        stellar_apply_param "3" "$f2fs_path/compress_log_size"     # 8KB compression units
+        stellar_apply_param "70" "$f2fs_path/compress_percent"     # Moderate compression
+        stellar_apply_param "1" "$f2fs_path/compress_mode"
+        
+        # Balanced memory utilization
+        stellar_apply_param "8" "$f2fs_path/ram_thresh"
+        stellar_apply_param "512" "$f2fs_path/max_extent_cache"   # Moderate extent cache
+        stellar_apply_param "32" "$f2fs_path/extent_cache_shrink_ratio"
+        
+        # Balanced I/O settings
+        stellar_apply_param "1" "$f2fs_path/iostat_enable"
+        stellar_apply_param "2048" "$f2fs_path/min_seq_blocks"
+        stellar_apply_param "1" "$f2fs_path/seq_file_ra"
+        
+        # Moderate power management
+        stellar_apply_param "5000" "$f2fs_path/idle_interval"     # 5s idle optimization
+        stellar_apply_param "1" "$f2fs_path/discard_granularity"
+        stellar_apply_param "80" "$f2fs_path/discard_urgent_util"
+        
+        # Balanced node settings
+        stellar_apply_param "50" "$f2fs_path/node_io_flag"
+        stellar_apply_param "50" "$f2fs_path/data_io_flag"
+        stellar_apply_param "8" "$f2fs_path/dirty_nats_ratio"
+        
+        # Balanced checkpoint intervals
+        stellar_apply_param "60" "$f2fs_path/cp_interval"         # 60s checkpoints
+        stellar_apply_param "120" "$f2fs_path/gc_min_sleep_time"
+        stellar_apply_param "500" "$f2fs_path/gc_max_sleep_time"
+    done
+    
+    stellar_apply_param "100" "/proc/sys/fs/f2fs/iostat_period_ms"
+    
+    echo "F2FS balanced optimization completed"
+}
+
+# F2FS power saving optimization
+f2fs_powersave() {
+    echo "Applying F2FS power saving optimizations..."
+    
+    local f2fs_mounts=$(get_f2fs_mounts)
+    
+    if [ -z "$f2fs_mounts" ]; then
+        echo "No F2FS filesystems found"
+        return 1
+    fi
+    
+    for f2fs_path in /sys/fs/f2fs/*/; do
+        [ ! -d "$f2fs_path" ] && continue
+        
+        echo "Configuring F2FS at: $f2fs_path"
+        
+        # Conservative Garbage Collection
+        stellar_apply_param "0" "$f2fs_path/gc_urgent"           # No urgent GC
+        stellar_apply_param "2000" "$f2fs_path/gc_urgent_sleep_time"  # Longer GC intervals
+        stellar_apply_param "8" "$f2fs_path/max_victim_search"    # Fewer victim searches
+        stellar_apply_param "8" "$f2fs_path/batched_trim_sections"   # Smaller trim batches
+        
+        # Efficient compression for battery life
+        stellar_apply_param "lz4" "$f2fs_path/compress_algorithm"
+        stellar_apply_param "2" "$f2fs_path/compress_log_size"     # 4KB compression units
+        stellar_apply_param "50" "$f2fs_path/compress_percent"     # Conservative compression
+        stellar_apply_param "1" "$f2fs_path/compress_mode"
+        
+        # Conservative memory utilization
+        stellar_apply_param "8" "$f2fs_path/ram_thresh"
+        stellar_apply_param "256" "$f2fs_path/max_extent_cache"   # Smaller extent cache
+        stellar_apply_param "16" "$f2fs_path/extent_cache_shrink_ratio"
+        
+        # Power-efficient I/O settings
+        stellar_apply_param "0" "$f2fs_path/iostat_enable"        # Disable I/O stats
+        stellar_apply_param "1024" "$f2fs_path/min_seq_blocks"
+        stellar_apply_param "0" "$f2fs_path/seq_file_ra"          # Disable read-ahead
+        
+        # Aggressive power management
+        stellar_apply_param "10000" "$f2fs_path/idle_interval"    # 10s idle optimization
+        stellar_apply_param "4" "$f2fs_path/discard_granularity"  # Larger discard granularity
+        stellar_apply_param "60" "$f2fs_path/discard_urgent_util"
+        
+        # Conservative node settings
+        stellar_apply_param "25" "$f2fs_path/node_io_flag"
+        stellar_apply_param "25" "$f2fs_path/data_io_flag"
+        stellar_apply_param "12" "$f2fs_path/dirty_nats_ratio"
+        
+        # Longer checkpoint intervals for power saving
+        stellar_apply_param "300" "$f2fs_path/cp_interval"        # 5min checkpoints
+        stellar_apply_param "500" "$f2fs_path/gc_min_sleep_time"
+        stellar_apply_param "2000" "$f2fs_path/gc_max_sleep_time"
+    done
+    
+    stellar_apply_param "1000" "/proc/sys/fs/f2fs/iostat_period_ms"  # Slower I/O stats
+    
+    echo "F2FS power saving optimization completed"
+}
+
+# Show F2FS status and information
+f2fs_status() {
+    echo "=== F2FS Status and Information ==="
+    
+    local f2fs_mounts=$(get_f2fs_mounts)
+    
+    if [ -z "$f2fs_mounts" ]; then
+        echo "No F2FS filesystems found"
+        return 1
+    fi
+    
+    echo "F2FS mount points:"
+    for mount_point in $f2fs_mounts; do
+        local device=$(mount | grep "$mount_point" | awk '{print $1}')
+        echo "  $device -> $mount_point"
+        
+        # Show mount options
+        local mount_opts=$(mount | grep "$mount_point" | sed 's/.*(//' | sed 's/).*//')
+        echo "    Options: $mount_opts"
+        
+        # Show filesystem usage
+        df -h "$mount_point" | tail -1 | awk '{print "    Usage: " $3 "/" $2 " (" $5 " used)"}'
+    done
+    
+    echo ""
+    echo "F2FS configuration:"
+    for f2fs_path in /sys/fs/f2fs/*/; do
+        [ ! -d "$f2fs_path" ] && continue
+        
+        local fs_name=$(basename "$f2fs_path")
+        echo "  Filesystem: $fs_name"
+        
+        # Show key configuration values
+        [ -f "$f2fs_path/compress_algorithm" ] && echo "    Compression: $(cat "$f2fs_path/compress_algorithm" 2>/dev/null || echo "N/A")"
+        [ -f "$f2fs_path/gc_urgent" ] && echo "    GC Urgent: $(cat "$f2fs_path/gc_urgent" 2>/dev/null || echo "N/A")"
+        [ -f "$f2fs_path/ram_thresh" ] && echo "    RAM Threshold: $(cat "$f2fs_path/ram_thresh" 2>/dev/null || echo "N/A")GB"
+        [ -f "$f2fs_path/max_extent_cache" ] && echo "    Extent Cache: $(cat "$f2fs_path/max_extent_cache" 2>/dev/null || echo "N/A")"
+    done
+}
+
+# Main execution
+case "$1" in
+    "performance"|"gaming")
+        f2fs_performance
+        ;;
+    "balanced"|"normal")
+        f2fs_balanced
+        ;;
+    "powersave"|"battery")
+        f2fs_powersave
+        ;;
+    "status"|"info")
+        f2fs_status
+        ;;
+    *)
+        echo "Usage: f2fs_optimizer [performance|balanced|powersave|status]"
+        echo "  performance - Maximum I/O performance for gaming"
+        echo "  balanced    - Optimal performance/power ratio"
+        echo "  powersave   - Maximum battery efficiency"
+        echo "  status      - Show F2FS filesystem information"
+        exit 1
+        ;;
+esac

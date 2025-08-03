@@ -1,0 +1,363 @@
+#!/system/bin/sh
+
+#
+# Copyright (C) 2024-2025 Kanao - Stellar Tweaks
+# Display Optimizer for Google Tensor G1 (Pixel 6)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+config_file="/data/adb/.config/stellar"
+
+# Function to apply parameters safely
+stellar_apply_param() {
+    [ ! -f "$2" ] && return 1
+    chmod 666 "$2" >/dev/null 2>&1
+    echo "$1" > "$2" 2>/dev/null
+    chmod 444 "$2" >/dev/null 2>&1
+}
+
+# Function to apply Android settings
+apply_setting() {
+    settings put "$1" "$2" "$3" 2>/dev/null
+}
+
+# Get display information
+get_display_info() {
+    echo "=== Display Information ==="
+    
+    # Get screen resolution
+    local resolution=$(wm size 2>/dev/null | grep "Physical size" | cut -d: -f2 | tr -d ' ')
+    echo "Resolution: $resolution"
+    
+    # Get current refresh rate
+    local refresh_rate=$(dumpsys display | grep "refresh rate" | head -1 | grep -o '[0-9]*\.[0-9]*' | head -1)
+    echo "Current refresh rate: ${refresh_rate}Hz"
+    
+    # Get supported refresh rates
+    echo "Supported refresh rates:"
+    dumpsys display | grep "supported modes" -A 20 | grep -o '[0-9]*\.[0-9]*fps' | sed 's/fps/Hz/' | sort -u | sed 's/^/  /'
+    
+    # Get adaptive brightness status
+    local auto_brightness=$(settings get system screen_brightness_mode)
+    echo "Adaptive brightness: $([ "$auto_brightness" = "1" ] && echo "Enabled" || echo "Disabled")"
+    
+    # Get current brightness
+    local brightness=$(settings get system screen_brightness)
+    echo "Current brightness: $brightness"
+}
+
+# Gaming display optimization
+display_gaming() {
+    echo "Applying gaming display optimizations..."
+    
+    # Force 90Hz refresh rate for gaming
+    echo "Setting 90Hz refresh rate for gaming..."
+    apply_setting system peak_refresh_rate 90
+    apply_setting system min_refresh_rate 90
+    apply_setting global display_force_90hz 1
+    
+    # Disable adaptive refresh rate during gaming
+    apply_setting global adaptive_refresh_rate 0
+    apply_setting system smooth_display_enabled 0
+    
+    # Optimize display latency
+    echo "Optimizing display latency..."
+    apply_setting global display_panel_lpm_enabled 0
+    apply_setting global display_hw_vsync_enabled 1
+    apply_setting global display_force_hwui_render 1
+    
+    # GPU rendering optimizations
+    setprop debug.egl.hw 1
+    setprop debug.egl.profiler 1
+    setprop debug.composition.type gpu
+    setprop debug.sf.hw 1
+    setprop debug.sf.latch_unsignaled 1
+    
+    # Touch sensitivity optimization
+    echo "Optimizing touch sensitivity..."
+    apply_setting system touch_exploration_enabled 0
+    apply_setting secure touch_exploration_enabled 0
+    
+    # HDR optimization for gaming
+    echo "Optimizing HDR settings..."
+    apply_setting global hdr_conversion_mode 1
+    apply_setting global hdr_force_conversion 0
+    
+    # Disable animations for better gaming performance
+    apply_setting global window_animation_scale 0.5
+    apply_setting global transition_animation_scale 0.5
+    apply_setting global animator_duration_scale 0.5
+    
+    # Color management for gaming
+    apply_setting system display_color_mode 0  # Natural color mode
+    apply_setting global color_mode 0
+    
+    # Disable power saving display features
+    apply_setting global display_power_saving_enabled 0
+    apply_setting system screen_auto_brightness_adj 0
+    
+    # Touch and input optimizations
+    stellar_apply_param "1" "/sys/class/input/input*/enable_edge_filter"
+    stellar_apply_param "0" "/sys/class/input/input*/palm_filter"
+    stellar_apply_param "1" "/sys/class/input/input*/touch_sensitivity"
+    
+    # Display driver optimizations
+    for display_path in /sys/class/drm/card*/device; do
+        [ -d "$display_path" ] && {
+            stellar_apply_param "performance" "$display_path/power_dpm_force_performance_level"
+            stellar_apply_param "high" "$display_path/power_dpm_state"
+        }
+    done
+    
+    echo "Gaming display optimizations applied - 90Hz locked, minimal latency"
+}
+
+# Balanced display optimization
+display_balanced() {
+    echo "Applying balanced display optimizations..."
+    
+    # Enable adaptive refresh rate for efficiency
+    echo "Enabling adaptive refresh rate..."
+    apply_setting system peak_refresh_rate 90
+    apply_setting system min_refresh_rate 60
+    apply_setting global adaptive_refresh_rate 1
+    apply_setting system smooth_display_enabled 1
+    
+    # Balanced display settings
+    apply_setting global display_panel_lpm_enabled 1
+    apply_setting global display_hw_vsync_enabled 1
+    apply_setting global display_force_hwui_render 0
+    
+    # Moderate GPU rendering settings
+    setprop debug.egl.hw 1
+    setprop debug.composition.type cpu
+    setprop debug.sf.hw 1
+    setprop debug.sf.latch_unsignaled 0
+    
+    # Touch sensitivity - balanced
+    apply_setting system touch_exploration_enabled 0
+    apply_setting secure touch_exploration_enabled 0
+    
+    # HDR - adaptive
+    apply_setting global hdr_conversion_mode 2
+    apply_setting global hdr_force_conversion 0
+    
+    # Moderate animations
+    apply_setting global window_animation_scale 1.0
+    apply_setting global transition_animation_scale 1.0
+    apply_setting global animator_duration_scale 1.0
+    
+    # Adaptive color management
+    apply_setting system display_color_mode 1  # Adaptive color mode
+    apply_setting global color_mode 2
+    
+    # Enable adaptive brightness
+    apply_setting system screen_brightness_mode 1
+    apply_setting system screen_auto_brightness_adj 0
+    
+    # Balanced touch settings
+    stellar_apply_param "1" "/sys/class/input/input*/enable_edge_filter"
+    stellar_apply_param "1" "/sys/class/input/input*/palm_filter"
+    stellar_apply_param "0" "/sys/class/input/input*/touch_sensitivity"
+    
+    # Display driver - balanced
+    for display_path in /sys/class/drm/card*/device; do
+        [ -d "$display_path" ] && {
+            stellar_apply_param "auto" "$display_path/power_dpm_force_performance_level"
+            stellar_apply_param "balanced" "$display_path/power_dpm_state"
+        }
+    done
+    
+    echo "Balanced display optimizations applied - adaptive 60-90Hz"
+}
+
+# Power saving display optimization
+display_powersave() {
+    echo "Applying power saving display optimizations..."
+    
+    # Force 60Hz for battery saving
+    echo "Setting 60Hz refresh rate for power saving..."
+    apply_setting system peak_refresh_rate 60
+    apply_setting system min_refresh_rate 60
+    apply_setting global display_force_90hz 0
+    
+    # Disable adaptive refresh rate to save power
+    apply_setting global adaptive_refresh_rate 0
+    apply_setting system smooth_display_enabled 0
+    
+    # Enable power saving display features
+    apply_setting global display_panel_lpm_enabled 1
+    apply_setting global display_hw_vsync_enabled 0
+    apply_setting global display_force_hwui_render 0
+    
+    # CPU-based rendering for power saving
+    setprop debug.egl.hw 0
+    setprop debug.composition.type cpu
+    setprop debug.sf.hw 0
+    setprop debug.sf.latch_unsignaled 0
+    
+    # Reduce touch sensitivity for power saving
+    apply_setting system touch_exploration_enabled 1
+    apply_setting secure touch_exploration_enabled 1
+    
+    # Disable HDR to save power
+    apply_setting global hdr_conversion_mode 0
+    apply_setting global hdr_force_conversion 0
+    
+    # Disable animations to save GPU power
+    apply_setting global window_animation_scale 0
+    apply_setting global transition_animation_scale 0
+    apply_setting global animator_duration_scale 0
+    
+    # Power saving color management
+    apply_setting system display_color_mode 2  # Natural color mode
+    apply_setting global color_mode 0
+    
+    # Enable aggressive power saving features
+    apply_setting global display_power_saving_enabled 1
+    apply_setting system screen_brightness_mode 1
+    apply_setting system screen_auto_brightness_adj -1.0
+    
+    # Reduce screen timeout
+    apply_setting system screen_off_timeout 30000  # 30 seconds
+    
+    # Conservative touch settings
+    stellar_apply_param "1" "/sys/class/input/input*/enable_edge_filter"
+    stellar_apply_param "1" "/sys/class/input/input*/palm_filter"
+    stellar_apply_param "0" "/sys/class/input/input*/touch_sensitivity"
+    
+    # Display driver - power saving
+    for display_path in /sys/class/drm/card*/device; do
+        [ -d "$display_path" ] && {
+            stellar_apply_param "low" "$display_path/power_dpm_force_performance_level"
+            stellar_apply_param "battery" "$display_path/power_dpm_state"
+        }
+    done
+    
+    echo "Power saving display optimizations applied - 60Hz locked, maximum efficiency"
+}
+
+# Display calibration for Tensor G1
+display_calibrate() {
+    echo "Applying Tensor G1 display calibration..."
+    
+    # Pixel 6 specific display calibration
+    apply_setting system display_white_balance_enabled 1
+    apply_setting system night_display_activated 0
+    apply_setting system night_display_auto_mode 0
+    
+    # Color temperature optimization
+    apply_setting system display_temperature_day 6500
+    apply_setting system display_temperature_night 4000
+    
+    # Contrast and saturation optimization
+    apply_setting system display_contrast 1.0
+    apply_setting system display_saturation 1.1
+    
+    # HDR10+ calibration for Pixel 6
+    apply_setting global hdr10_plus_enabled 1
+    apply_setting global hdr_dolby_vision_enabled 1
+    
+    echo "Display calibration completed"
+}
+
+# Show display status
+display_status() {
+    get_display_info
+    
+    echo ""
+    echo "=== Current Display Settings ==="
+    
+    # Refresh rate settings
+    local peak_refresh=$(settings get system peak_refresh_rate)
+    local min_refresh=$(settings get system min_refresh_rate)
+    echo "Peak refresh rate: ${peak_refresh}Hz"
+    echo "Min refresh rate: ${min_refresh}Hz"
+    
+    # Adaptive settings
+    local adaptive=$(settings get global adaptive_refresh_rate)
+    echo "Adaptive refresh rate: $([ "$adaptive" = "1" ] && echo "Enabled" || echo "Disabled")"
+    
+    # Animation scales
+    local window_anim=$(settings get global window_animation_scale)
+    local transition_anim=$(settings get global transition_animation_scale)
+    local animator_dur=$(settings get global animator_duration_scale)
+    echo "Animation scales: Window=$window_anim, Transition=$transition_anim, Duration=$animator_dur"
+    
+    # Color mode
+    local color_mode=$(settings get system display_color_mode)
+    echo "Color mode: $color_mode"
+    
+    # HDR status
+    local hdr_mode=$(settings get global hdr_conversion_mode)
+    echo "HDR conversion mode: $hdr_mode"
+    
+    # Power saving
+    local power_save=$(settings get global display_power_saving_enabled)
+    echo "Display power saving: $([ "$power_save" = "1" ] && echo "Enabled" || echo "Disabled")"
+}
+
+# Test refresh rate changes
+display_test() {
+    echo "Testing refresh rate changes..."
+    
+    echo "Testing 60Hz..."
+    apply_setting system peak_refresh_rate 60
+    apply_setting system min_refresh_rate 60
+    sleep 3
+    
+    echo "Testing 90Hz..."
+    apply_setting system peak_refresh_rate 90
+    apply_setting system min_refresh_rate 90
+    sleep 3
+    
+    echo "Testing adaptive (60-90Hz)..."
+    apply_setting system peak_refresh_rate 90
+    apply_setting system min_refresh_rate 60
+    apply_setting global adaptive_refresh_rate 1
+    
+    echo "Refresh rate test completed"
+}
+
+# Main execution
+case "$1" in
+    "performance"|"gaming")
+        display_gaming
+        ;;
+    "balanced"|"normal")
+        display_balanced
+        ;;
+    "powersave"|"battery")
+        display_powersave
+        ;;
+    "calibrate")
+        display_calibrate
+        ;;
+    "status"|"info")
+        display_status
+        ;;
+    "test")
+        display_test
+        ;;
+    *)
+        echo "Usage: display_optimizer [performance|balanced|powersave|calibrate|status|test]"
+        echo "  performance - Gaming display optimization (90Hz locked)"
+        echo "  balanced    - Adaptive refresh rate optimization (60-90Hz)"
+        echo "  powersave   - Power saving optimization (60Hz locked)"
+        echo "  calibrate   - Apply Tensor G1 display calibration"
+        echo "  status      - Show current display settings"
+        echo "  test        - Test refresh rate changes"
+        exit 1
+        ;;
+esac
