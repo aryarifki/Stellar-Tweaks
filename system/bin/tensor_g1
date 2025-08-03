@@ -1,0 +1,237 @@
+#!/system/bin/sh
+
+#
+# Copyright (C) 2024-2025 Kanao - Stellar Tweaks
+# Tensor G1 Status Monitor and Utility
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+# Comprehensive Tensor G1 status and control utility
+
+config_file="/data/adb/.config/stellar"
+
+print_header() {
+    echo "==============================================="
+    echo "         Stellar Tweaks - Tensor G1"
+    echo "==============================================="
+    echo ""
+}
+
+print_section() {
+    echo "--- $1 ---"
+}
+
+# Show comprehensive Tensor G1 status
+tensor_status() {
+    print_header
+    
+    # Check if device is Tensor G1
+    print_section "Device Detection"
+    if tensor_detect check >/dev/null 2>&1; then
+        echo "✓ Google Tensor G1 device detected"
+        
+        # Show hardware info
+        print_section "Hardware Information"
+        tensor_detect info
+        
+        echo ""
+        print_section "Current Profile"
+        if [ -f "$config_file/mode" ]; then
+            mode=$(cat "$config_file/mode" 2>/dev/null)
+            case "$mode" in
+                "perf") echo "Current mode: Performance (Gaming)" ;;
+                "def") echo "Current mode: Balanced (Normal)" ;;
+                "pwr") echo "Current mode: Power Saving (Battery)" ;;
+                *) echo "Current mode: Unknown ($mode)" ;;
+            esac
+        else
+            echo "Current mode: Not set"
+        fi
+        
+        echo ""
+        print_section "Thermal Status"
+        thermal_tensor status
+        
+        echo ""
+        print_section "Display Status"
+        display_optimizer status
+        
+        echo ""
+        print_section "F2FS Status"
+        f2fs_optimizer status
+        
+    else
+        echo "✗ This device is not a Google Tensor G1"
+        echo "Tensor G1 optimizations are not available."
+        exit 1
+    fi
+}
+
+# Apply gaming optimizations
+tensor_gaming() {
+    print_header
+    echo "Applying Tensor G1 gaming optimizations..."
+    
+    if ! tensor_detect check >/dev/null 2>&1; then
+        echo "✗ Not a Tensor G1 device"
+        exit 1
+    fi
+    
+    echo "→ Applying performance profile..."
+    profiles_mode 1
+    
+    echo "✓ Tensor G1 gaming optimizations applied!"
+    echo ""
+    echo "Performance improvements:"
+    echo "• CPU: Maximum tri-cluster performance"
+    echo "• GPU: Mali-G78 MP20 at peak frequency"
+    echo "• Display: 90Hz locked for gaming"
+    echo "• Storage: F2FS performance mode"
+    echo "• Thermal: Reduced throttling for sustained performance"
+}
+
+# Apply balanced optimizations
+tensor_balanced() {
+    print_header
+    echo "Applying Tensor G1 balanced optimizations..."
+    
+    if ! tensor_detect check >/dev/null 2>&1; then
+        echo "✗ Not a Tensor G1 device"
+        exit 1
+    fi
+    
+    echo "→ Applying balanced profile..."
+    profiles_mode 2
+    
+    echo "✓ Tensor G1 balanced optimizations applied!"
+    echo ""
+    echo "Performance improvements:"
+    echo "• CPU: Adaptive tri-cluster scaling"
+    echo "• GPU: Dynamic performance scaling"
+    echo "• Display: Adaptive 60-90Hz refresh rate"
+    echo "• Storage: Balanced F2FS configuration"
+    echo "• Thermal: Standard thermal management"
+}
+
+# Apply power saving optimizations
+tensor_battery() {
+    print_header
+    echo "Applying Tensor G1 power saving optimizations..."
+    
+    if ! tensor_detect check >/dev/null 2>&1; then
+        echo "✗ Not a Tensor G1 device"
+        exit 1
+    fi
+    
+    echo "→ Applying power saving profile..."
+    profiles_mode 3
+    
+    echo "✓ Tensor G1 power saving optimizations applied!"
+    echo ""
+    echo "Battery improvements:"
+    echo "• CPU: Conservative tri-cluster scaling"
+    echo "• GPU: 4-core mode with power gating"
+    echo "• Display: 60Hz locked for efficiency"
+    echo "• Storage: Power-efficient F2FS mode"
+    echo "• Thermal: Aggressive temperature protection"
+}
+
+# Monitor system in real-time
+tensor_monitor() {
+    print_header
+    echo "Starting Tensor G1 real-time monitoring..."
+    echo "Press Ctrl+C to stop"
+    echo ""
+    
+    if ! tensor_detect check >/dev/null 2>&1; then
+        echo "✗ Not a Tensor G1 device"
+        exit 1
+    fi
+    
+    while true; do
+        clear
+        print_header
+        echo "$(date): Real-time Tensor G1 Status"
+        echo ""
+        
+        # Show current profile
+        if [ -f "$config_file/mode" ]; then
+            mode=$(cat "$config_file/mode" 2>/dev/null)
+            case "$mode" in
+                "perf") echo "Mode: 🎮 Performance (Gaming)" ;;
+                "def") echo "Mode: ⚖️ Balanced (Normal)" ;;
+                "pwr") echo "Mode: 🔋 Power Saving (Battery)" ;;
+                *) echo "Mode: ❓ Unknown" ;;
+            esac
+        fi
+        echo ""
+        
+        # Show thermal status
+        thermal_tensor status
+        
+        sleep 5
+    done
+}
+
+# Show help
+show_help() {
+    print_header
+    echo "Tensor G1 Control Utility"
+    echo ""
+    echo "Usage: tensor_g1 [command]"
+    echo ""
+    echo "Commands:"
+    echo "  status    - Show comprehensive Tensor G1 status"
+    echo "  gaming    - Apply gaming optimizations"
+    echo "  balanced  - Apply balanced optimizations"
+    echo "  battery   - Apply power saving optimizations"
+    echo "  monitor   - Real-time monitoring"
+    echo "  help      - Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  tensor_g1 status    # Check current status"
+    echo "  tensor_g1 gaming    # Enable gaming mode"
+    echo "  tensor_g1 battery   # Enable battery saving"
+    echo "  tensor_g1 monitor   # Start monitoring"
+}
+
+# Main execution
+case "$1" in
+    "status"|"info")
+        tensor_status
+        ;;
+    "gaming"|"performance"|"perf")
+        tensor_gaming
+        ;;
+    "balanced"|"normal"|"def")
+        tensor_balanced
+        ;;
+    "battery"|"powersave"|"pwr")
+        tensor_battery
+        ;;
+    "monitor"|"watch")
+        tensor_monitor
+        ;;
+    "help"|"--help"|"-h")
+        show_help
+        ;;
+    "")
+        show_help
+        ;;
+    *)
+        echo "Unknown command: $1"
+        echo "Use 'tensor_g1 help' for usage information"
+        exit 1
+        ;;
+esac

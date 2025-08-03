@@ -160,7 +160,7 @@ extract_and_place_files() {
 
 handle_binaries() {
     print_status "Setting up binaries..."
-    local binaries="stellars profiles_mode vmt zeta_tweak tensor_detect tensor_optimizer mali_g78_optimizer f2fs_optimizer thermal_tensor display_optimizer"
+    local binaries="stellars profiles_mode vmt zeta_tweak tensor_detect tensor_optimizer mali_g78_optimizer f2fs_optimizer thermal_tensor display_optimizer tensor_g1"
     
     if $USE_SYMLINK; then
         print_status "Setting up symlinks for binaries..."
