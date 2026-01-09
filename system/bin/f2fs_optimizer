@@ -22,6 +22,8 @@ config_file="/data/adb/.config/stellar"
 # Function to apply parameters safely
 stellar_apply_param() {
     [ ! -f "$2" ] && return 1
+    # Try writing directly first to avoid expensive chmod
+    echo "$1" > "$2" 2>/dev/null && return 0
     chmod 666 "$2" >/dev/null 2>&1
     echo "$1" > "$2" 2>/dev/null
     chmod 444 "$2" >/dev/null 2>&1
@@ -266,10 +268,23 @@ f2fs_status() {
         echo "  Filesystem: $fs_name"
         
         # Show key configuration values
-        [ -f "$f2fs_path/compress_algorithm" ] && echo "    Compression: $(cat "$f2fs_path/compress_algorithm" 2>/dev/null || echo "N/A")"
-        [ -f "$f2fs_path/gc_urgent" ] && echo "    GC Urgent: $(cat "$f2fs_path/gc_urgent" 2>/dev/null || echo "N/A")"
-        [ -f "$f2fs_path/ram_thresh" ] && echo "    RAM Threshold: $(cat "$f2fs_path/ram_thresh" 2>/dev/null || echo "N/A")GB"
-        [ -f "$f2fs_path/max_extent_cache" ] && echo "    Extent Cache: $(cat "$f2fs_path/max_extent_cache" 2>/dev/null || echo "N/A")"
+        # Replaced cat with read -r
+        if [ -f "$f2fs_path/compress_algorithm" ]; then
+             read -r val < "$f2fs_path/compress_algorithm" 2>/dev/null || val="N/A"
+             echo "    Compression: $val"
+        fi
+        if [ -f "$f2fs_path/gc_urgent" ]; then
+             read -r val < "$f2fs_path/gc_urgent" 2>/dev/null || val="N/A"
+             echo "    GC Urgent: $val"
+        fi
+        if [ -f "$f2fs_path/ram_thresh" ]; then
+             read -r val < "$f2fs_path/ram_thresh" 2>/dev/null || val="N/A"
+             echo "    RAM Threshold: ${val}GB"
+        fi
+        if [ -f "$f2fs_path/max_extent_cache" ]; then
+             read -r val < "$f2fs_path/max_extent_cache" 2>/dev/null || val="N/A"
+             echo "    Extent Cache: $val"
+        fi
     done
 }
 

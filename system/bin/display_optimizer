@@ -22,6 +22,8 @@ config_file="/data/adb/.config/stellar"
 # Function to apply parameters safely
 stellar_apply_param() {
     [ ! -f "$2" ] && return 1
+    # Try writing directly first to avoid expensive chmod
+    echo "$1" > "$2" 2>/dev/null && return 0
     chmod 666 "$2" >/dev/null 2>&1
     echo "$1" > "$2" 2>/dev/null
     chmod 444 "$2" >/dev/null 2>&1

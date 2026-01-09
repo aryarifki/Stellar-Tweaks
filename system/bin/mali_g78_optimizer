@@ -22,6 +22,8 @@ config_file="/data/adb/.config/stellar"
 # Function to apply parameters safely
 stellar_apply_param() {
     [ ! -f "$2" ] && return 1
+    # Try writing directly first to avoid expensive chmod
+    echo "$1" > "$2" 2>/dev/null && return 0
     chmod 666 "$2" >/dev/null 2>&1
     echo "$1" > "$2" 2>/dev/null
     chmod 444 "$2" >/dev/null 2>&1
@@ -30,13 +32,16 @@ stellar_apply_param() {
 # Function to get highest frequency from available frequencies
 stellar_get_apex_hz() {
     [ ! -f "$1" ] && return 1
-    cat "$1" | tr ' ' '\n' | sort -nr | head -1
+    # Use sort -nr | head -1
+    # Replacing cat with input redirection
+    tr ' ' '\n' < "$1" | sort -nr | head -1
 }
 
 # Function to get median frequency from available frequencies  
 stellar_get_median_hz() {
     [ ! -f "$1" ] && return 1
-    local freqs=$(cat "$1" | tr ' ' '\n' | sort -n)
+    # Replacing cat with input redirection
+    local freqs=$(tr ' ' '\n' < "$1" | sort -n)
     local count=$(echo "$freqs" | wc -l)
     local median_pos=$(((count + 1) / 2))
     echo "$freqs" | sed -n "${median_pos}p"
@@ -45,7 +50,8 @@ stellar_get_median_hz() {
 # Function to get lowest frequency from available frequencies
 stellar_get_nadir_hz() {
     [ ! -f "$1" ] && return 1
-    cat "$1" | tr ' ' '\n' | sort -n | head -1
+    # Replacing cat with input redirection
+    tr ' ' '\n' < "$1" | sort -n | head -1
 }
 
 # Mali-G78 MP20 performance profile for gaming
@@ -259,7 +265,7 @@ mali_g78_powersave() {
 # Check DVFS limiting
 check_dvfs_limit() {
     local dvfs_gpu_file="$config_file/dvfs_gpu"
-    if [ -f "$dvfs_gpu_file" ] && [ "$(cat "$dvfs_gpu_file")" -eq 1 ]; then
+    if [ -f "$dvfs_gpu_file" ] && [ "$(read -r val < "$dvfs_gpu_file" && echo "$val")" -eq 1 ]; then
         echo "DVFS GPU limiting is enabled (80% max frequency)"
         return 0
     fi

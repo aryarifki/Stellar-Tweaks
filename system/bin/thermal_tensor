@@ -22,6 +22,8 @@ config_file="/data/adb/.config/stellar"
 # Function to apply parameters safely
 stellar_apply_param() {
     [ ! -f "$2" ] && return 1
+    # Try writing directly first to avoid expensive chmod
+    echo "$1" > "$2" 2>/dev/null && return 0
     chmod 666 "$2" >/dev/null 2>&1
     echo "$1" > "$2" 2>/dev/null
     chmod 444 "$2" >/dev/null 2>&1
@@ -35,14 +37,22 @@ get_thermal_zones() {
 # Get thermal zone type
 get_thermal_type() {
     local zone="$1"
-    [ -f "$zone/type" ] && cat "$zone/type" 2>/dev/null || echo "unknown"
+    # Using read instead of cat
+    if [ -f "$zone/type" ]; then
+        local type
+        read -r type < "$zone/type" 2>/dev/null && echo "$type" || echo "unknown"
+    else
+        echo "unknown"
+    fi
 }
 
 # Get thermal zone temperature
 get_thermal_temp() {
     local zone="$1"
     if [ -f "$zone/temp" ]; then
-        local temp=$(cat "$zone/temp" 2>/dev/null)
+        # Using read instead of cat
+        local temp
+        read -r temp < "$zone/temp" 2>/dev/null
         [ -n "$temp" ] && echo "$((temp / 1000))" || echo "N/A"
     else
         echo "N/A"
@@ -58,7 +68,7 @@ thermal_gaming() {
     
     for zone in $thermal_zones; do
         local zone_type=$(get_thermal_type "$zone")
-        local zone_num=$(basename "$zone" | grep -o '[0-9]*')
+        local zone_num=${zone##*thermal_zone} # Optimize basename with shell expansion
         
         echo "Configuring thermal zone $zone_num ($zone_type)"
         
@@ -137,7 +147,7 @@ thermal_balanced() {
     
     for zone in $thermal_zones; do
         local zone_type=$(get_thermal_type "$zone")
-        local zone_num=$(basename "$zone" | grep -o '[0-9]*')
+        local zone_num=${zone##*thermal_zone}
         
         echo "Configuring thermal zone $zone_num ($zone_type)"
         
@@ -205,7 +215,7 @@ thermal_powersave() {
     
     for zone in $thermal_zones; do
         local zone_type=$(get_thermal_type "$zone")
-        local zone_num=$(basename "$zone" | grep -o '[0-9]*')
+        local zone_num=${zone##*thermal_zone}
         
         echo "Configuring thermal zone $zone_num ($zone_type)"
         
@@ -257,7 +267,9 @@ thermal_powersave() {
         stellar_apply_param "conservative" "$zone/policy"
         for cooling_device in "$zone"/cdev*; do
             [ -d "$cooling_device" ] && {
-                local max_state=$(cat "$cooling_device/max_state" 2>/dev/null || echo "10")
+                # Using read instead of cat
+                local max_state
+                read -r max_state < "$cooling_device/max_state" 2>/dev/null || max_state="10"
                 stellar_apply_param "$max_state" "$cooling_device/cur_state"
             }
         done
@@ -281,7 +293,7 @@ thermal_status() {
     for zone in $thermal_zones; do
         local zone_type=$(get_thermal_type "$zone")
         local zone_temp=$(get_thermal_temp "$zone")
-        local zone_num=$(basename "$zone" | grep -o '[0-9]*')
+        local zone_num=${zone##*thermal_zone}
         
         printf "  Zone %s (%s): %s°C\n" "$zone_num" "$zone_type" "$zone_temp"
     done
@@ -290,13 +302,14 @@ thermal_status() {
     echo "Thermal trip points:"
     for zone in $thermal_zones; do
         local zone_type=$(get_thermal_type "$zone")
-        local zone_num=$(basename "$zone" | grep -o '[0-9]*')
+        local zone_num=${zone##*thermal_zone}
         
         echo "  Zone $zone_num ($zone_type):"
         for i in 0 1 2; do
             if [ -f "$zone/trip_point_${i}_temp" ]; then
-                local trip_temp=$(cat "$zone/trip_point_${i}_temp" 2>/dev/null)
-                local trip_type=$(cat "$zone/trip_point_${i}_type" 2>/dev/null)
+                local trip_temp trip_type
+                read -r trip_temp < "$zone/trip_point_${i}_temp" 2>/dev/null
+                read -r trip_type < "$zone/trip_point_${i}_type" 2>/dev/null
                 [ -n "$trip_temp" ] && echo "    Trip $i: $((trip_temp / 1000))°C ($trip_type)"
             fi
         done
